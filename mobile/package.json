@@ -31,7 +31,7 @@
     "@types/react-test-renderer": "19.1.0",
     "react-test-renderer": "19.2.3",
     "semver": "7.8.5",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.12"
   },
   "packageManager": "pnpm@10.34.9",

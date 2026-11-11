@@ -76,11 +76,11 @@ export async function verifyNeonBackup(objectKey: string) {
     const application = await verifyRestoredApplication(database, url, archive)
     const elapsedSeconds = Math.round((performance.now() - started) / 10) / 100
     stage = 'validation'
-    const expiredRemoved = await publishBackupValidation(storage, bucket, validationSecret, {
+    const validation = await publishBackupValidation(storage, bucket, validationSecret, {
       version: 1, backupKey: objectKey, archiveSha256: createHash('sha256').update(bytes).digest('hex'), archiveBytes: bytes.length,
       createdAt: archive.createdAt, validatedAt: new Date().toISOString(), tables: tables.length, objects: archive.objects.length, elapsedSeconds,
     })
-    console.log(JSON.stringify({ restored: true, isolated: true, tables: tables.length, migrations: migrations.length, extensions: extensions.length, snapshotCountsMatch: true, migrationChecksumsMatch: true, privateFields, privateObjects, application, validated: true, elapsedSeconds, academicRtoMinutes: 60, withinAcademicRto: elapsedSeconds <= 3600, expiredRemoved }))
+    console.log(JSON.stringify({ restored: true, isolated: true, tables: tables.length, migrations: migrations.length, extensions: extensions.length, snapshotCountsMatch: true, migrationChecksumsMatch: true, privateFields, privateObjects, application, validated: true, historical: validation.historical, freshnessEligible: !validation.historical, elapsedSeconds, academicRtoMinutes: 60, withinAcademicRto: elapsedSeconds <= 3600, expiredRemoved: validation.expiredRemoved }))
   } catch (error) {
     console.error(JSON.stringify({ recoveryFailed: true, stage }))
     throw error

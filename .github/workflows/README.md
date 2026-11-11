@@ -84,3 +84,7 @@ Os objetivos academicos sao RPO de 24 horas e RTO de 60 minutos, sem SLA. O GitH
 A suite [migrations.test.ts](../../tests/integration/migrations.test.ts) verifica SHA-256 com normalizacao LF/CRLF, baseline historica, divergencias, arquivos ausentes, rollback, preservacao de `applied_at` e aplicacao concorrente unica. A suite [database-rules.test.ts](../../tests/integration/database-rules.test.ts) verifica papeis, participantes, valores financeiros, filas, privacidade e concorrencia no PostgreSQL. Ambas usam bancos isolados `_test`; a CI nao usa producao como destino.
 
 A baseline 001-007 foi auditada contra o conteudo do commit `3a09d67`; ela permite completar checksums legados e nao prova a execucao historica de cada arquivo no banco.
+
+O ensaio restaurado inclui atleta, treinador e administrador, CREF manual, contratacao, prescricao, execucao com feedback e permissoes. Uma copia com mais de 26 horas pode ser restaurada e validada como historica, sem satisfazer o monitor de atualidade ou iniciar a limpeza da retencao. As suites [historica](../../tests/unit/neon-backup-history.test.ts), [fluxo restaurado](../../tests/integration/neon-restored-flow.test.ts) e [entrega temporal](../../tests/integration/mail-delivery.test.ts) cobrem essas regras.
+
+Para comprovar a agenda do provedor, conferir `event=schedule` na execucao, alem do commit e resultado. `workflow_dispatch` comprova o disparo manual, nao o agendamento automatico. Agendas podem sofrer atrasos; a atualidade deve ser calculada pela criacao do snapshot.

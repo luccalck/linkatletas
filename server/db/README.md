@@ -22,6 +22,8 @@ A baseline 001–007 foi auditada contra o conteúdo do commit `3a09d67`. Ela pe
 
 As migrations 007 e 008 reforçam avaliações e mensagens vinculadas aos participantes corretos, papéis de atleta/treinador, valores financeiros não negativos e índices de FKs, filas e expiração. As [verificações de integridade](../../tests/integration/database-rules.test.ts) incluem alterações concorrentes e preservação dos fluxos de privacidade.
 
+A [migration 009](migrations/009_mail_delivery.sql) classifica os e-mails, vincula recuperações ao token por FK com exclusão em cascata e registra validade e descarte seguro. Não altera migrations anteriores. Aplicar antes da publicação do consumidor novo; mensagens antigas sem classificação são descartadas por segurança. Os [testes de entrega](../../tests/integration/mail-delivery.test.ts) verificam validade, concorrência, substituição e saúde da fila em PostgreSQL real.
+
 Reiniciar o Docker não reaplica automaticamente `init-test.sql` sobre volume existente. Backups e restauração ficam em [scripts/banco](../../scripts/banco).
 
 Na nuvem, a conta da aplicação opera dados e não modifica o esquema. A allowlist concede operações por finalidade: as seis tabelas de auditoria/histórico recebem apenas `SELECT` e `INSERT`; os registros principais relacionados não recebem `DELETE`, preservando o histórico contra cascatas da aplicação. Exclusões legítimas continuam disponíveis nas tabelas operacionais previstas, como sessões e filas. Tabelas futuras não recebem privilégios automaticamente.

@@ -18,6 +18,7 @@ erDiagram
   users ||--o{ contracts : coach_id_coach_role
   workouts ||--o| executions : workout_id
   workouts ||--o{ exercise_blocks : workout_id
+  password_resets o|--o{ mail_outbox : reset_token_hash
   users o|--o{ mail_outbox : user_id
   users ||--o{ media : owner_id
   users ||--o{ media_feedback : author_id
@@ -148,6 +149,7 @@ erDiagram
     uuid user_id FK
     text encrypted_body
     timestamp_with_time_zone sent_at
+    text reset_token_hash FK
   }
   media {
     uuid id PK

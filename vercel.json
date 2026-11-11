@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "fastify",
+  "regions": ["gru1"],
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": null,

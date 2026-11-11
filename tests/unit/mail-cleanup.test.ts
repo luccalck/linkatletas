@@ -70,8 +70,8 @@ describe('liberacao do transporte SMTP', () => {
     const pool = { connect: vi.fn().mockResolvedValue(client) } as unknown as Pool
     await expect(deliverOutbox(pool, item.id)).resolves.toEqual({ sent: 1 })
     const selections = query.mock.calls.filter(([sql]) => sql.startsWith('SELECT'))
-    expect(selections).toHaveLength(1)
-    expect(selections[0]).toEqual([
+    expect(selections).toHaveLength(3)
+    expect(selections[1]).toEqual([
       expect.stringContaining('AND id=$1 ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1'),
       [item.id],
     ])

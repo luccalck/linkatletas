@@ -1065,10 +1065,34 @@
     },
     {
       "table_name": "mail_outbox",
+      "column_name": "discard_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "column_name": "discarded_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "mail_outbox",
       "column_name": "encrypted_body",
       "data_type": "text",
       "udt_name": "text",
       "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
       "column_default": null
     },
     {
@@ -1097,10 +1121,26 @@
     },
     {
       "table_name": "mail_outbox",
+      "column_name": "purpose",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'legacy'::text"
+    },
+    {
+      "table_name": "mail_outbox",
       "column_name": "recipient",
       "data_type": "text",
       "udt_name": "text",
       "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "column_name": "reset_token_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
       "column_default": null
     },
     {
@@ -2869,6 +2909,19 @@
     },
     {
       "table_name": "mail_outbox",
+      "name": "mail_outbox_discard_state",
+      "type": "c",
+      "definition": "CHECK ((((discarded_at IS NULL) AND (discard_reason IS NULL)) OR ((discarded_at IS NOT NULL) AND (sent_at IS NULL) AND (encrypted_body = ''::text) AND (discard_reason IS NOT NULL) AND (discard_reason = ANY (ARRAY['legacy'::text, 'expired'::text, 'used'::text, 'inactive_account'::text, 'invalid_reference'::text])))))",
+      "columns": [
+        "discarded_at",
+        "discard_reason",
+        "sent_at",
+        "encrypted_body"
+      ],
+      "foreign_table": null
+    },
+    {
+      "table_name": "mail_outbox",
       "name": "mail_outbox_pkey",
       "type": "p",
       "definition": "PRIMARY KEY (id)",
@@ -2876,6 +2929,38 @@
         "id"
       ],
       "foreign_table": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "name": "mail_outbox_purpose",
+      "type": "c",
+      "definition": "CHECK ((purpose = ANY (ARRAY['legacy'::text, 'notification'::text, 'password_reset'::text])))",
+      "columns": [
+        "purpose"
+      ],
+      "foreign_table": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "name": "mail_outbox_reset_reference",
+      "type": "c",
+      "definition": "CHECK ((((purpose = 'password_reset'::text) AND (reset_token_hash IS NOT NULL) AND (expires_at IS NOT NULL)) OR ((purpose = ANY (ARRAY['legacy'::text, 'notification'::text])) AND (reset_token_hash IS NULL) AND (expires_at IS NULL))))",
+      "columns": [
+        "purpose",
+        "reset_token_hash",
+        "expires_at"
+      ],
+      "foreign_table": null
+    },
+    {
+      "table_name": "mail_outbox",
+      "name": "mail_outbox_reset_token_hash_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (reset_token_hash) REFERENCES password_resets(token_hash) ON DELETE CASCADE",
+      "columns": [
+        "reset_token_hash"
+      ],
+      "foreign_table": "password_resets"
     },
     {
       "table_name": "mail_outbox",
@@ -3852,12 +3937,17 @@
     {
       "tablename": "mail_outbox",
       "indexname": "mail_outbox_pending_delivery",
-      "indexdef": "CREATE INDEX mail_outbox_pending_delivery ON public.mail_outbox USING btree (next_attempt_at, created_at) WHERE ((sent_at IS NULL) AND (attempts < 5))"
+      "indexdef": "CREATE INDEX mail_outbox_pending_delivery ON public.mail_outbox USING btree (next_attempt_at, created_at) WHERE ((sent_at IS NULL) AND (discarded_at IS NULL) AND (attempts < 5))"
     },
     {
       "tablename": "mail_outbox",
       "indexname": "mail_outbox_pkey",
       "indexdef": "CREATE UNIQUE INDEX mail_outbox_pkey ON public.mail_outbox USING btree (id)"
+    },
+    {
+      "tablename": "mail_outbox",
+      "indexname": "mail_outbox_reset_reference",
+      "indexdef": "CREATE INDEX mail_outbox_reset_reference ON public.mail_outbox USING btree (reset_token_hash)"
     },
     {
       "tablename": "media",

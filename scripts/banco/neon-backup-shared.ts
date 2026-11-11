@@ -73,13 +73,21 @@ export function decodeValidation(bytes: Buffer, key: Buffer) {
   return validationSchema.parse(JSON.parse(value.toString('utf8')))
 }
 
-export function assertFreshValidation(input: BackupValidation, now = new Date()) {
+export function assertValidationTimeline(input: BackupValidation, now = new Date()) {
   const value = validationSchema.parse(input)
   const created = Date.parse(value.createdAt)
   const validated = Date.parse(value.validatedAt)
   const age = now.getTime() - created
-  if (!Number.isFinite(age) || age > 26 * 3600000 || age < -300000 || validated < created || validated > now.getTime() + 300000 || value.createdAt.slice(0, 10) !== value.backupKey.split('/')[1]) {
-    throw new Error('Ultimo backup validado ausente, atrasado ou com horario invalido.')
+  if (!Number.isFinite(age) || age < -300000 || validated < created || validated > now.getTime() + 300000 || value.createdAt.slice(0, 10) !== value.backupKey.split('/')[1]) {
+    throw new Error('Validacao de backup com cronologia invalida.')
+  }
+  return value
+}
+
+export function assertFreshValidation(input: BackupValidation, now = new Date()) {
+  const value = assertValidationTimeline(input, now)
+  if (now.getTime() - Date.parse(value.createdAt) > 26 * 3600000) {
+    throw new Error('Ultimo backup validado ausente ou atrasado.')
   }
   return value
 }

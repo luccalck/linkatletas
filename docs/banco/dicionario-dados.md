@@ -436,17 +436,27 @@ Restrições:
 | next_attempt_at | timestamp with time zone | Não | — |
 | created_at | timestamp with time zone | Não | — |
 | last_error | text | Sim | — |
+| purpose | text | Não | — |
+| reset_token_hash | text | Sim | FK → password_resets |
+| expires_at | timestamp with time zone | Sim | — |
+| discarded_at | timestamp with time zone | Sim | — |
+| discard_reason | text | Sim | — |
 
 Restrições:
 
+- `mail_outbox_discard_state`: `CHECK ((((discarded_at IS NULL) AND (discard_reason IS NULL)) OR ((discarded_at IS NOT NULL) AND (sent_at IS NULL) AND (encrypted_body = ''::text) AND (discard_reason IS NOT NULL) AND (discard_reason = ANY (ARRAY['legacy'::text, 'expired'::text, 'used'::text, 'inactive_account'::text, 'invalid_reference'::text])))))`.
 - `mail_outbox_pkey`: `PRIMARY KEY (id)`.
+- `mail_outbox_purpose`: `CHECK ((purpose = ANY (ARRAY['legacy'::text, 'notification'::text, 'password_reset'::text])))`.
+- `mail_outbox_reset_reference`: `CHECK ((((purpose = 'password_reset'::text) AND (reset_token_hash IS NOT NULL) AND (expires_at IS NOT NULL)) OR ((purpose = ANY (ARRAY['legacy'::text, 'notification'::text])) AND (reset_token_hash IS NULL) AND (expires_at IS NULL))))`.
+- `mail_outbox_reset_token_hash_fkey`: `FOREIGN KEY (reset_token_hash) REFERENCES password_resets(token_hash) ON DELETE CASCADE`.
 - `mail_outbox_user_id_fkey`: `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`.
 
 Índices:
 
 - `idx_mail_outbox_user_id_fkey`: `CREATE INDEX idx_mail_outbox_user_id_fkey ON public.mail_outbox USING btree (user_id)`.
-- `mail_outbox_pending_delivery`: `CREATE INDEX mail_outbox_pending_delivery ON public.mail_outbox USING btree (next_attempt_at, created_at) WHERE ((sent_at IS NULL) AND (attempts < 5))`.
+- `mail_outbox_pending_delivery`: `CREATE INDEX mail_outbox_pending_delivery ON public.mail_outbox USING btree (next_attempt_at, created_at) WHERE ((sent_at IS NULL) AND (discarded_at IS NULL) AND (attempts < 5))`.
 - `mail_outbox_pkey`: `CREATE UNIQUE INDEX mail_outbox_pkey ON public.mail_outbox USING btree (id)`.
+- `mail_outbox_reset_reference`: `CREATE INDEX mail_outbox_reset_reference ON public.mail_outbox USING btree (reset_token_hash)`.
 
 ## media
 

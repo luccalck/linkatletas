@@ -4,6 +4,7 @@ import { createPool } from './db/pool.js'
 import { cleanupMediaUploads } from './modules/media/uploads.js'
 import { mediaStorage, mediaBucket } from './modules/media/routes.js'
 import { deliverOutbox } from './services/mail.js'
+import { readMailQueueHealth } from './services/mail-queue-health.js'
 import { expireVerifications } from './modules/accounts/verification.js'
 import { processBillingEvents } from './modules/billing/events.js'
 import { expireBillingAccess, reconcileBilling } from './modules/billing/lifecycle.js'
@@ -19,7 +20,8 @@ export async function runJobs(pool: Pool) {
   await pool.query(
     "DELETE FROM password_resets WHERE expires_at<now()-interval '1 day'",
   )
-  return { verifications, mail, uploads, completedAt: new Date().toISOString() }
+  const mailHealth = await readMailQueueHealth(pool)
+  return { verifications, mail, mailHealth, uploads, completedAt: new Date().toISOString() }
 }
 if (
   process.argv[1] &&

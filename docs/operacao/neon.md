@@ -24,6 +24,7 @@ Nas variáveis PostgreSQL do deploy, manter somente `DATABASE_URL`, com a conta 
 
 ## Conexões e limites
 
+- A região da função Vercel é definida como São Paulo (`gru1`) em [vercel.json](../../vercel.json), próxima ao PostgreSQL em `sa-east-1`. A configuração do repositório precisa estar presente no deployment publicado; um deployment anterior mantém sua região original.
 - Aplicação: endpoint com `-pooler` e `sslmode=verify-full`, validando o certificado do servidor. Manutenção e backup: conexão direta.
 - Cada pool da API admite até dez conexões e espera até cinco segundos para conectar.
 - Consultas têm limite de 30 segundos; espera por locks, cinco segundos; transações ociosas, um minuto. O cliente limita a espera de consulta a 35 segundos.
@@ -47,6 +48,8 @@ O SHA-256 normaliza CRLF para LF. Outras alterações no conteúdo não são ign
 
 A migration 007 vincula avaliações aos participantes do contrato, limita comissões e cria índices de apoio às FKs. A 008 reforça papéis de atleta/treinador, remetentes pertencentes ao contrato, valores financeiros não negativos e índices das filas e expiração. Chaves compostas e CHECKs protegem também alterações concorrentes; encerramento de conta e alterações válidas de participantes são preservados.
 
+A migration 009 adiciona finalidade, referência ao token, validade e estado de descarte à fila de e-mails. Deve ser aplicada antes da publicação do novo consumidor. Recuperações substituídas são removidas por FK; o consumidor não envia registros vencidos, utilizados ou legados sem classificação. O esquema gerado passa a ter 37 tabelas, 277 colunas e 48 FKs.
+
 Antes de publicar, aplicar e testar em banco `_test` isolado, conferir os dados existentes e usar manutenção com espera por locks limitada. Uma falha deve ser investigada, sem remover dados automaticamente para forçar a migração. Consultar os testes de [migrations](../../tests/integration/migrations.test.ts) e [integridade](../../tests/integration/database-rules.test.ts). O [dicionário](../banco/dicionario-dados.md), o [DER](../diagramas/der.mmd) e os metadados são gerados do esquema migrado, compatível com PostgreSQL 17 local e 18 do Neon.
 
 ## Filas, e-mails e escala a zero
@@ -56,6 +59,12 @@ E-mails são gravados cifrados em `mail_outbox`. Depois do commit, a aplicação
 A periodicidade operacional recomendada para o cron-job.org é **quinze minutos**. Ele chama `/api/internal/jobs` com o segredo exclusivo no cabeçalho `Authorization`; a rota processa filas, reconciliações e limpezas sob trava, impedindo sobreposição. A mudança da periodicidade precisa ser aplicada e conferida no painel do serviço: o código não altera a agenda remota. A configuração anterior de um minuto mantinha o compute acordado, apesar da escala a zero após cinco minutos.
 
 O intervalo maior reduz despertares sem tirar o envio imediato do fluxo normal. Falhas de SMTP podem adiar a recuperação pelo cron; observar tentativas esgotadas e erros de execução. Aceite SMTP não garante entrega na caixa de entrada.
+
+O monitor separado `/api/internal/queues`, também protegido pelo `CRON_SECRET` e com `Cache-Control: no-store`, retorna apenas contagens e idade da pendência mais antiga. Responde 503 quando há cinco tentativas esgotadas, pendência acima de trinta minutos ou recuperação vencida após falha de entrega. Não retorna destinatários, tokens ou mensagens. O executor `/api/internal/jobs` continua retornando 200 se concluiu seu trabalho, mesmo quando a fila está degradada; erros reais de execução continuam falhando. Separar as duas agendas impede que um alerta de SMTP desative também reconciliações e limpezas.
+
+Configurar uma segunda tarefa no cron-job.org a cada quinze minutos para o monitor, com o mesmo segredo já autorizado ao serviço. Ativar alertas de falha, recuperação e desativação; conferir execução real no histórico. Caso o provedor desative o monitor após falhas consecutivas, corrigir a causa e reativá-lo. A rota criada no código, sozinha, não configura a agenda externa.
+
+Uma nova solicitação de recuperação substitui o token anterior e sua mensagem; redefinição utilizada ou conta encerrada impede o envio pendente. O corpo cifrado é apagado no envio ou descarte. A concorrência é controlada por bloqueios no token e na mensagem; SMTP e PostgreSQL não compartilham transação, portanto interrupção após aceite SMTP e antes do commit pode causar repetição. Não prometer entrega exatamente uma vez.
 
 ## Backup independente no Tigris
 
@@ -70,6 +79,10 @@ O [workflow de backup](../../.github/workflows/neon-backup.yml) define execuçã
 Cada execução deve restaurar o v2 em PostgreSQL 18 temporário e S3 local vazio do runner. O teste compara contagens, migrations, checksums, extensões, restrições, arquivos e decriptação dos seis campos privados previstos com a chave original. Exercita também saúde, cadastro, login, perfil, logout e entrada inválida por uma API isolada com conta fictícia e role limitada, sem SMTP externo ou pagamentos reais.
 
 Somente após a recuperação completa o processo publica um marcador autenticado de validação. Cópias v1 históricas não comprovam essa recuperação completa. A existência do workflow não comprova uma execução recente: conferir **Actions → Backup cifrado do Neon** e os resultados do monitor antes de considerar a cópia utilizável. Dumps e conteúdo privado não são enviados como artifacts ou para os logs.
+
+O ensaio também exercita treinador e administrador, conferência manual de CREF, contratação com aceite, prescrição, execução com feedback cifrado e bloqueios entre perfis. Fixtures e role temporária são removidas inclusive após falha; nenhum desses cenários é executado contra produção.
+
+Restaurações de snapshots com mais de 26 horas são válidas como ensaios históricos e recebem marcador autenticado, mas não executam limpeza de retenção nem satisfazem a exigência de cópia recente. A data de validação não substitui a data de criação do snapshot. Os testes cobrem três e sete dias e a coexistência com um marcador recente.
 
 ### Credenciais e chaves
 
@@ -106,6 +119,8 @@ O [monitor independente](../../.github/workflows/neon-backup-monitor.yml) roda a
 O arquivo cifrado e cada objeto têm limite de 128 MiB. A retenção é de sete dias, com limpeza restrita aos objetos desse processo após uma recuperação validada e regra de expiração no prefixo exclusivo `neon/` do bucket. A regra do provedor é assíncrona e deve ser conferida no painel. Rever capacidade, custo e retenção conforme o projeto cresce, sem contratar plano automaticamente.
 
 ## Limites do plano e do escopo
+
+Arquivos locais com credenciais, chaves de cifra e materiais privados devem ficar ignorados pelo Git e protegidos por ACL NTFS limitada ao usuário responsável, SYSTEM e Administrators. A proteção precisa abranger diretórios e arquivos existentes; ignorar um arquivo no Git não impede outros usuários locais de lê-lo. Revogar credenciais eventualmente expostas e preservar as chaves necessárias aos backups retidos.
 
 No plano Free auditado, o histórico nativo do Neon alcança seis horas; não substitui backup remoto independente. A escala a zero está configurada para cinco minutos e o compute para 0,25 CU. Allowlist de IPs/VPC e proteção de branch não estão disponíveis no plano atual. A aplicação usa rede pública autenticada com TLS validado: não desativar essa rede nem contratar upgrade para encerrar um checklist.
 

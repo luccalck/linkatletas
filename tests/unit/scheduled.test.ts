@@ -59,6 +59,40 @@ describe('tarefas agendadas', () => {
     return { client, pool }
   }
 
+  it.each([
+    [{ skipped: false, result: { mailHealth: { healthy: false, pending: 1, exhausted: 1 } } }, 200],
+    [{ skipped: false, result: { mailHealth: { healthy: true, pending: 1, exhausted: 0 } } }, 200],
+    [{ skipped: true }, 200],
+  ])('preserva o executor mesmo quando a fila precisa de atencao', async (outcome, status) => {
+    const app = Fastify()
+    const work = vi.fn().mockResolvedValue(outcome)
+    scheduledRoutes(app, work, () => secret)
+    try {
+      const response = await app.inject({ url: '/api/internal/jobs', headers: { authorization: `Bearer ${secret}` } })
+      expect(response.statusCode).toBe(status)
+      expect(response.json()).toEqual(outcome)
+      expect(response.headers['cache-control']).toBe('no-store')
+      expect(JSON.stringify(response.json())).not.toMatch(/recipient|encrypted_body|token_hash/)
+    } finally { await app.close() }
+  })
+
+  it.each([true, false])('o monitor separado usa autorizacao e sinaliza a saude: %s', async (healthy) => {
+    const app = Fastify()
+    const work = vi.fn()
+    const health = vi.fn().mockResolvedValue({ healthy, pending: 1, exhausted: healthy ? 0 : 1 })
+    scheduledRoutes(app, work, () => secret, health)
+    try {
+      expect((await app.inject('/api/internal/queues')).statusCode).toBe(401)
+      expect(health).not.toHaveBeenCalled()
+      expect((await app.inject({ url: '/api/internal/queues', headers: { authorization: 'Bearer errada' } })).statusCode).toBe(401)
+      const response = await app.inject({ url: '/api/internal/queues', headers: { authorization: 'Bearer ' + secret } })
+      expect(response.statusCode).toBe(healthy ? 200 : 503)
+      expect(response.json().healthy).toBe(healthy)
+      expect(response.headers['cache-control']).toBe('no-store')
+      expect(work).not.toHaveBeenCalled()
+    } finally { await app.close() }
+  })
+
   it('evita outra execucao enquanto a trava esta ocupada', async () => {
     const { pool, client } = database(false)
     const work = vi.fn()

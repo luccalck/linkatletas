@@ -63,8 +63,8 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
           await client.query('DELETE FROM password_resets WHERE user_id=$1', [
             rows[0].id,
           ])
-          await client.query(
-            "INSERT INTO password_resets(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '30 minutes')",
+          const created = await client.query<{ expires_at: Date }>(
+            "INSERT INTO password_resets(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '30 minutes') RETURNING expires_at",
             [tokenHash(token), rows[0].id],
           )
           return queueMail(
@@ -73,6 +73,7 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
             rows[0].email,
             'Recuperação de acesso — LinkAtletas',
             `Abra ${process.env.APP_ORIGIN || 'http://localhost:5173'}/redefinir-senha#token=${token}\nO link expira em 30 minutos e só pode ser usado uma vez. Se não solicitou, ignore esta mensagem.`,
+            { tokenHash: tokenHash(token), expiresAt: created.rows[0].expires_at },
           )
         })
         if (mailId)
@@ -99,8 +100,9 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
         const input = reset.parse(req.body),
           hash = await hashPassword(input.password)
         const mailId = await transaction(pool, async (client) => {
+          await client.query('SELECT id FROM users WHERE id=(SELECT user_id FROM password_resets WHERE token_hash=$1) AND disabled_at IS NULL FOR UPDATE', [tokenHash(input.token)])
           const { rows } = await client.query(
-            'SELECT r.user_id,u.email FROM password_resets r JOIN users u ON u.id=r.user_id WHERE token_hash=$1 AND used_at IS NULL AND expires_at>now() AND u.disabled_at IS NULL FOR UPDATE OF r',
+            'SELECT r.user_id,u.email FROM password_resets r JOIN users u ON u.id=r.user_id WHERE token_hash=$1 AND used_at IS NULL AND expires_at>clock_timestamp() AND u.disabled_at IS NULL FOR UPDATE OF r',
             [tokenHash(input.token)],
           )
           if (!rows[0])

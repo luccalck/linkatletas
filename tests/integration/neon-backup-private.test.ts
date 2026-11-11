@@ -47,6 +47,10 @@ afterEach(async () => {
 })
 
 describe('selecao real PostgreSQL de envelopes privados restaurados', () => {
+  it('ignora mail descartado com corpo eliminado intencionalmente', async () => {
+    await database().query("INSERT INTO mail_outbox(user_id,recipient,subject,encrypted_body,discarded_at,discard_reason) VALUES($1,'fixture@example.invalid','Descartado','',now(),'legacy')", [userId])
+    expect(await verify()).toBe(0)
+  })
   it('ignora somente mail entregue com corpo eliminado intencionalmente', async () => {
     await mail('', '2026-10-30T00:00:00Z')
     expect(await verify()).toBe(0)

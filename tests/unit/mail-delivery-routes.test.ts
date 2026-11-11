@@ -35,8 +35,10 @@ describe('entrega imediata de recuperacao e confirmacao de senha', () => {
       if (sql.startsWith('SELECT id,email FROM users')) return { rows: existing ? [{ id: 'user-id', email: 'atleta@example.com' }] : [] }
       if (sql.startsWith('SELECT r.user_id')) return { rows: [{ user_id: 'user-id', email: 'atleta@example.com' }] }
       if (sql.startsWith('INSERT INTO password_resets') && failInsert) throw new Error('Banco indisponivel')
+      if (sql.startsWith('INSERT INTO password_resets')) return { rows: [{ expires_at: new Date(Date.now() + 1800000) }] }
       if (sql.startsWith('INSERT INTO mail_outbox')) return { rows: [{ id: 'mail-id' }] }
-      if (sql.startsWith('SELECT * FROM mail_outbox')) return { rows: [{ id: 'mail-id', recipient: 'atleta@example.com', subject: 'Recuperacao', encrypted_body: encryptPrivate('token-secreto') }] }
+      if (sql.startsWith('SELECT *')) return { rows: [{ id: 'mail-id', recipient: 'atleta@example.com', subject: 'Recuperacao', encrypted_body: encryptPrivate('token-secreto') }] }
+      if (sql.startsWith('SELECT disabled_at')) return { rows: [{ disabled_at: null }] }
       return { rows: [], rowCount: 1 }
     })
     pool = { connect: vi.fn().mockResolvedValue({ query, release: vi.fn() }) } as unknown as Pool
@@ -56,7 +58,7 @@ describe('entrega imediata de recuperacao e confirmacao de senha', () => {
     try {
       const response = await app.inject({ method: 'POST', url: `${prefix}/forgot-password`, payload: { email: 'atleta@example.com' } })
       expect(response.statusCode).toBe(200)
-      expect(smtp.sendMail).toHaveBeenCalledOnce()
+      await vi.waitFor(() => expect(smtp.sendMail).toHaveBeenCalledOnce())
       expect(lifetime.waitUntil).toHaveBeenCalledExactlyOnceWith(expect.any(Promise))
       const statements = query.mock.calls.map(([sql]) => sql)
       expect(statements.indexOf('COMMIT')).toBeLessThan(statements.findIndex((sql) => sql.startsWith('SELECT * FROM mail_outbox')))

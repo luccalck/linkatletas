@@ -5,10 +5,11 @@ import staticPlugin from '@fastify/static'
 import { apiPort, production } from './config.js'
 import { createPool } from './db/pool.js'
 import { runScheduledJobs, scheduledRoutes } from './scheduled.js'
+import { readMailQueueHealth } from './services/mail-queue-health.js'
 
 export async function startServer(app: FastifyInstance, options: { listen?: boolean } = {}) {
   const jobsPool = createPool()
-  scheduledRoutes(app, () => runScheduledJobs(jobsPool))
+  scheduledRoutes(app, () => runScheduledJobs(jobsPool), undefined, () => readMailQueueHealth(jobsPool))
   let jobsRunning = false
   const jobsTimer = process.env.VERCEL === '1' ? undefined : setInterval(
     async () => {

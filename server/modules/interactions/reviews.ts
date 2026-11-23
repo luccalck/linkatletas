@@ -207,7 +207,7 @@ export function registerReviewRoutes(app: FastifyInstance, pool: Pool) {
       )
       if (!visible.rowCount) fail(404, 'NOT_FOUND', 'Avaliação não encontrada.')
       await pool.query(
-        'INSERT INTO review_reports(review_id,reporter_id,reason) VALUES($1,$2,$3) ON CONFLICT(review_id,reporter_id) DO UPDATE SET reason=EXCLUDED.reason,created_at=now()',
+        'INSERT INTO review_reports(review_id,reporter_id,reason) VALUES($1,$2,$3) ON CONFLICT(review_id,reporter_id) DO NOTHING',
         [id, user.id, reason],
       )
       return { ok: true }

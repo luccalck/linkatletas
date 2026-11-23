@@ -1,8 +1,9 @@
 import { isIP } from 'node:net'
 import { z } from 'zod'
 
-export const externalUrlSchema = z.string().max(2000).url().refine((value) => {
-  if (/[\u0000-\u0020\u007f<>"\\]/.test(value)) return false
+export const externalUrlSchema = z.string().max(2000)
+  .refine((value) => !/[\u0000-\u0020\u007f<>"\\]/.test(value), 'Referencia contem caracteres nao permitidos.')
+  .url().refine((value) => {
   try {
     const url = new URL(value)
     const host = url.hostname.toLowerCase().replace(/\.$/, '')

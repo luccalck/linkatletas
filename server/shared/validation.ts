@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { GOALS, LEVELS, SLOTS, SPORTS } from '../../shared/contracts.js'
+import { externalUrlSchema } from './external-url.js'
 export const idSchema = z.uuid()
 export const profileSchema = z
   .object({
@@ -24,20 +25,7 @@ const block = z
     loadKg: z.number().finite().min(0).max(1000).optional(),
     durationMinutes: z.number().finite().min(0).max(1440).optional(),
     distanceKm: z.number().finite().min(0).max(1500).optional(),
-    videoUrl: z
-      .string()
-      .max(2000)
-      .refine((value) => !/[\u0000-\u0020\u007f<>"\\]/.test(value), 'Referencia invalida.')
-      .url()
-      .refine((value) => {
-        try {
-          const url = new URL(value)
-          return url.protocol === 'https:' && !url.username && !url.password
-        } catch {
-          return false
-        }
-      }, 'Use uma URL HTTPS sem credenciais.')
-      .optional(),
+    videoUrl: externalUrlSchema.optional(),
   })
   .strict()
 export const workoutSchema = z

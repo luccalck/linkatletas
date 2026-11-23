@@ -16,6 +16,8 @@ Um caso documentado na ERS, sua implementação automatizada e o resultado de um
 
 As verificações de recuperação do Neon incluem [backups históricos](unit/neon-backup-history.test.ts), [fluxo restaurado com três perfis e limpeza](integration/neon-restored-flow.test.ts), [entrega e concorrência de e-mails em PostgreSQL](integration/mail-delivery.test.ts), [saúde agregada da fila](unit/mail-queue-health.test.ts) e [autorização dos endpoints internos](unit/scheduled.test.ts). SMTP é simulado nesses cenários: eles não comprovam entrega real pelo Brevo. A restauração completa do dump e dos arquivos pertence ao workflow de backup, além dos testes de funções isoladas.
 
+A suíte [input-boundaries](integration/input-boundaries.test.ts) usa PostgreSQL real com a mesma allowlist de privilégios do runtime e S3 simulado em memória. Verifica entradas adversariais, SQL como texto parametrizado, byte nulo, tentativa de elevar papel, links recusados, tipos/assinaturas de arquivos, acesso indevido, cifra, headers e upload em partes com pool de uma conexão. [external-url](unit/external-url.test.ts), [input-guard](unit/input-guard.test.ts) e [media-limits](unit/media-limits.test.ts) complementam a validação. Esses testes não equivalem a scanner antimalware nem a teste do Tigris real.
+
 ## Estrutura e ferramentas
 
 | Pasta | O que verifica | Ferramenta |

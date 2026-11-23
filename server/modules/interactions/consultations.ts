@@ -12,6 +12,7 @@ import { requireUser } from '../../shared/security.js'
 import { transaction } from '../../db/pool.js'
 import { insertNotification } from './notifications.js'
 import { publish } from './events.js'
+import { externalUrlSchema } from '../../shared/external-url.js'
 
 const consultationSelect = `SELECT x.id,x.contract_id AS "contractId",c.athlete_id AS "athleteId",a.name AS "athleteName",c.coach_id AS "coachId",t.name AS "coachName",x.title,x.description_ciphertext AS description,x.starts_at AS "startsAt",x.duration_minutes AS "durationMinutes",x.status,x.meeting_url AS "meetingUrl",x.external_event_id AS "externalEventId",x.created_at AS "createdAt",x.updated_at AS "updatedAt" FROM consultations x JOIN contracts c ON c.id=x.contract_id JOIN users a ON a.id=c.athlete_id JOIN users t ON t.id=c.coach_id`
 
@@ -54,12 +55,7 @@ async function assertNoConflict(
     )
 }
 
-const meetingUrl = z
-  .string()
-  .url()
-  .max(1000)
-  .refine((value) => new URL(value).protocol === 'https:', 'Use uma URL HTTPS.')
-  .optional()
+const meetingUrl = externalUrlSchema.refine((value) => value.length <= 1000, 'Referencia muito longa.').optional()
 
 const consultationInput = z
   .object({
@@ -313,10 +309,8 @@ export function registerConsultationRoutes(app: FastifyInstance, pool: Pool) {
         .min(5)
         .max(200)
         .regex(/^[a-zA-Z0-9_-]+$/),
-      meetingUrl: z
-        .string()
-        .url()
-        .max(1000)
+      meetingUrl: externalUrlSchema
+        .refine((value) => value.length <= 1000, 'Referencia muito longa.')
         .refine(
           (value) =>
             new URL(value).protocol === 'https:' &&

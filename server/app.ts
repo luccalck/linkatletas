@@ -23,6 +23,7 @@ import { mediaRoutes } from './modules/media/routes.js'
 import { interactionsRoutes } from './modules/interactions/routes.js'
 import { billingRoutes } from './modules/billing/routes.js'
 import { drainMailDeliveries } from './services/mail.js'
+import { rejectNullBytes } from './shared/input-guard.js'
 
 export async function buildApp(
   options: {
@@ -52,6 +53,7 @@ export async function buildApp(
     ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
   })
   installErrors(app, options.serveFrontend)
+  app.addHook('preValidation', async (req) => { rejectNullBytes(req.body, req.query, req.params) })
   installResponseDocs(app)
   await app.register(cookie)
   await app.register(multipart, {

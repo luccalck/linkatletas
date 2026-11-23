@@ -29,7 +29,7 @@ type Upload = {
   expires_at: Date
 }
 type Dependencies = {
-  authorize: (user: Actor, purpose: string, resourceId: string) => Promise<void>
+  authorize: (user: Actor, purpose: string, resourceId: string, connection?: PoolClient) => Promise<void>
   save: (
     user: Actor,
     purpose: string,
@@ -147,7 +147,7 @@ export async function mediaUploadRoutes(
     ).rows[0]
     if (!upload || new Date(upload.expires_at).getTime() <= Date.now())
       fail(404, 'UPLOAD_NOT_FOUND', 'Envio expirado ou indisponivel.')
-    await dependencies.authorize(user, upload.purpose, upload.resource_id)
+    await dependencies.authorize(user, upload.purpose, upload.resource_id, db)
     return upload
   }
   app.post(

@@ -47,6 +47,10 @@ Reset enviado para `/redefinir-senha#token=...`; o fragmento não integra a requ
 
 ## Arquivos privados
 
+Textos e chaves com byte nulo são recusados com 400 antes de alcançar o PostgreSQL. Texto semelhante a SQL ou HTML continua sendo dado: consultas parametrizadas e apresentação escapada são as proteções, não remover palavras do conteúdo do usuário.
+
+Referências externas de treinos e agenda exigem HTTPS sem credenciais, controles, IP literal, nome local ou porta alternativa. O servidor não visita esses endereços. Isso não verifica reputação, redirecionamento ou resolução DNS do domínio. Não transformar a referência em prévia ou download automático sem uma nova proteção de saída de rede.
+
 Para arquivos maiores que 3 MiB, web e aplicativo usam sessões de envio:
 
 | Método e rota | Entrada e comportamento |
@@ -57,6 +61,8 @@ Para arquivos maiores que 3 MiB, web e aplicativo usam sessões de envio:
 | DELETE `/media/uploads/:id` | Titular cancela a sessão e elimina as partes temporárias; não exclui uma mídia já concluída |
 
 Sessões expiram em uma hora, com no máximo três envios incompletos por usuário. As partes também ficam cifradas. O job elimina sessões expiradas e seus objetos temporários; revogação de performance e encerramento da conta eliminam partes correspondentes. Downloads usam resposta em stream e aceitam `Range: bytes=inicio-fim`, retornando 206/`Content-Range`; faixa inválida retorna 416. O suporte efetivo a arquivos grandes na Vercel exige o teste da implantação, além do teste local.
+
+Upload direto, conclusão de partes e download admitem no máximo duas operações simultâneas por instância da API; excesso retorna 429 `MEDIA_BUSY`, com `Retry-After: 1`. O cliente pode tentar novamente após a resposta, sem presumir limite global entre instâncias. A checagem de formato não é antivírus. PDF é entregue como anexo; respostas de conteúdo têm sandbox CSP, nosniff e no-store.
 
 `POST /media?purpose=verification|instruction|performance|message&resourceId=UUID`: multipart com um campo `file`; retorna 201 `{media}`. `resourceId`: usuário treinador para verification, ficha para instruction/performance, contrato para message. API confere propriedade e finalidade; performance exige consentimento.
 

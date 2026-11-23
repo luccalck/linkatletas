@@ -87,7 +87,12 @@ export async function matchingRoutes(app: FastifyInstance, pool: Pool) {
       const filters = filterSchema.parse(req.query)
       const athlete = await profileFor(pool, user.id)
       const { rows } = await pool.query<Profile>(
-        `${profileSelect} WHERE u.role='coach' AND u.disabled_at IS NULL AND p.verification_status='approved' AND (p.verification_expires_at IS NULL OR p.verification_expires_at>now())`,
+        `${profileSelect} WHERE u.role='coach' AND u.disabled_at IS NULL AND p.verification_status='approved' AND (p.verification_expires_at IS NULL OR p.verification_expires_at>now())
+          AND p.sports && $1::text[]
+          AND ($2::text IS NULL OR $2=ANY(p.sports))
+          AND ($3::numeric IS NULL OR p.price<=$3)
+          AND ($4::text IS NULL OR p.mode=$4 OR p.mode='hibrido')`,
+        [athlete.sports, filters.sport ?? null, filters.maxPrice ?? null, filters.mode ?? null],
       )
       const coaches: CoachCard[] = []
       for (const coach of rows) {

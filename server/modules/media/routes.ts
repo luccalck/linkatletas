@@ -20,6 +20,7 @@ import { idSchema, bodySchema } from '../../shared/validation.js'
 import { transaction } from '../../db/pool.js'
 import { assertContractAccess } from '../billing/access.js'
 import { notifyUsers } from '../interactions/notifications.js'
+import { installMediaLimits } from './limits.js'
 
 type MediaRow = {
   id: string
@@ -195,6 +196,7 @@ export async function deleteMediaObjects(
   }
 }
 export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
+  installMediaLimits(app)
   const schema = {
     tags: ['Arquivos privados'],
     response: { '2xx': { type: 'object', additionalProperties: true } },
@@ -206,7 +208,8 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
     file: { filename: string; mimetype: string; bytes: Buffer },
     connection?: PoolClient,
   ) {
-    await authorize(pool, user, purpose, resourceId, true)
+    const access = connection ?? pool
+    await authorize(access, user, purpose, resourceId, true)
     const bytes = file.bytes,
       type = fileType(bytes),
       extension = extname(file.filename).toLowerCase()
@@ -245,7 +248,7 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
       )
       try {
         // Check consent/resource again to cover revocation while uploading.
-        await authorize(pool, user, purpose, resourceId, true)
+        await authorize(access, user, purpose, resourceId, true)
         const persist = async (db: PoolClient) => {
           const account = await db.query(
             'SELECT 1 FROM users WHERE id=$1 AND disabled_at IS NULL FOR SHARE',
@@ -295,8 +298,8 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
     }
   }
   await mediaUploadRoutes(app, pool, {
-    authorize: (user, purpose, resourceId) =>
-      authorize(pool, user, purpose, resourceId, true),
+    authorize: (user, purpose, resourceId, connection) =>
+      authorize(connection ?? pool, user, purpose, resourceId, true),
     save: saveMedia,
     storage: mediaStorage,
     bucket: mediaBucket,

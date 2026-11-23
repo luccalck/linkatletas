@@ -55,7 +55,7 @@ async function assertNoConflict(
     )
 }
 
-const meetingUrl = externalUrlSchema.refine((value) => value.length <= 1000, 'Referencia muito longa.').optional()
+const meetingUrl = externalUrlSchema.max(1000).optional()
 
 const consultationInput = z
   .object({
@@ -310,7 +310,7 @@ export function registerConsultationRoutes(app: FastifyInstance, pool: Pool) {
         .max(200)
         .regex(/^[a-zA-Z0-9_-]+$/),
       meetingUrl: externalUrlSchema
-        .refine((value) => value.length <= 1000, 'Referencia muito longa.')
+        .max(1000)
         .refine(
           (value) =>
             new URL(value).protocol === 'https:' &&

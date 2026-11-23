@@ -69,6 +69,7 @@
   "pnpm": {
     "overrides": {
       "@vercel/cli-config>zod": "4.6.7",
+      "@fastify/static>content-disposition": "2.0.1",
       "fast-uri@>=3 <4": "3.1.9",
       "fast-uri@>=4 <5": "4.2.3"
     }

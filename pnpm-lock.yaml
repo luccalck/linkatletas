@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@vercel/cli-config>zod': 4.6.7
+  '@fastify/static>content-disposition': 2.0.1
   fast-uri@>=3 <4: 3.1.9
   fast-uri@>=4 <5: 4.2.3
 
@@ -707,9 +708,9 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  content-disposition@3.1.0:
-    resolution: {integrity: sha512-6lwVDK9bsenmMu7hxcLuUiu+FzFBDAdfQR1LKbE+SCo7/Qfpm2NG8X9f8AJgumfoVID/4r1stSxcmCeiT7pfkQ==}
-    engines: {node: '>=22'}
+  content-disposition@2.0.1:
+    resolution: {integrity: sha512-e+H0ZXHSWYrENhQzw1LPuP4oF5MzVKmDU6d3hxlvaPEYLLg62MxtQNPRx4SYSuYJSBUgnQIG4HIN2tEtNv7Dog==}
+    engines: {node: '>=18'}
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
@@ -1798,7 +1799,7 @@ snapshots:
       '@fastify/accept-negotiator': 2.1.2
       '@fastify/error': 4.2.1
       '@fastify/send': 4.2.0
-      content-disposition: 3.1.0
+      content-disposition: 2.0.1
       fastify-plugin: 6.0.1
       fastq: 1.20.3
       glob: 14.0.6
@@ -2084,7 +2085,7 @@ snapshots:
       tree-kill: 1.2.2
       yargs: 18.0.0
 
-  content-disposition@3.1.0: {}
+  content-disposition@2.0.1: {}
 
   convert-source-map@2.0.0: {}
 

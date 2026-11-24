@@ -113,7 +113,7 @@ export async function verifyRestoredApplication(database: pg.Client, url: URL, a
     for (const who of [athlete, coach]) await request(who, 'PUT', '/profiles/me', 200, { name: `Teste de recuperacao ${who.kind}`, city: 'Cidade ficticia', bio: 'Ensaio isolado de recuperacao.', sports: [SPORTS[0]], goals: [GOALS[0]], levels: [LEVELS[0]], availability: [SLOTS[0]], mode: 'online', budget: 250, price: 150 })
     await request(athlete, 'GET', '/admin/verifications', 403)
     await request(coach, 'GET', '/admin/verifications', 403)
-    const verification = await request(coach, 'POST', '/verifications', 201, { cref: 'TESTE-123456-G/SP', evidence: 'Conferencia ficticia restrita ao ensaio local de recuperacao.' })
+    const verification = await request(coach, 'POST', '/verifications', 201, { cref: '123456-G/SP', evidence: 'Conferencia ficticia restrita ao ensaio local de recuperacao.' })
     await request(athlete, 'PATCH', `/admin/verifications/${verification.verification.id}`, 403, { status: 'approved', reason: 'Nao autorizado.' })
     await request(admin, 'PATCH', `/admin/verifications/${verification.verification.id}`, 200, { status: 'approved', reason: 'Conferencia manual ficticia em recuperacao isolada.' })
     const contract = await request(athlete, 'POST', '/contracts', 201, { coachId: coach.id })

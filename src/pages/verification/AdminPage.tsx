@@ -104,6 +104,7 @@ export function AdminPage() {
               <div>
                 <h3>{v.coachName}</h3>
                 <p>CREF {v.cref}</p>
+                {v.qualification && <p>Formação: {v.qualification}</p>}
               </div>
               <Badge status={v.currentStatus || v.status} />
             </div>

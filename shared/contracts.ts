@@ -56,6 +56,7 @@ export interface Profile extends ProfileInput {
   role: Role
   email: string
   cref: string
+  qualification?: string
   verificationStatus: VerificationStatus
   verificationReason: string
   verificationExpiresAt?: string | null
@@ -69,6 +70,7 @@ export interface Verification {
   coachId: string
   coachName: string
   cref: string
+  qualification?: string
   evidence: string
   status: 'pending' | 'approved' | 'rejected'
   reason: string

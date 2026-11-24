@@ -7,16 +7,23 @@ import { fail } from '../../shared/errors.js'
 import { requireUser } from '../../shared/security.js'
 import { bodySchema, idSchema } from '../../shared/validation.js'
 import { notifyUsers } from '../interactions/notifications.js'
+import { parseCref } from '../../../shared/cref.js'
 
-const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref,v.evidence,v.status,v.reason,
+const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref,v.qualification,v.evidence,v.status,v.reason,
  v.submitted_at AS "submittedAt",v.reviewed_at AS "reviewedAt",v.reviewer_id AS "reviewerId",v.document_id AS "documentId",v.expires_at AS "expiresAt",v.source,p.verification_status AS "currentStatus",p.verification_reason AS "currentReason" FROM verifications v JOIN users u ON u.id=v.coach_id JOIN profiles p ON p.user_id=v.coach_id`
 const submission = z
   .object({
-    cref: z.string().trim().min(4).max(50),
-    evidence: z.string().trim().min(10).max(2000),
+    cref: z.string().trim().min(4).max(50).refine(value => {
+      try { parseCref(value); return true } catch { return false }
+    }, 'Informe o CREF com número, categoria e UF, por exemplo 123456-G/SP.'),
+    qualification: z.enum(['Bacharelado', 'Licenciatura', 'Bacharelado e Licenciatura', 'Provisionado']).optional(),
+    evidence: z.string().trim().max(2000).default(''),
     documentId: idSchema.optional(),
   })
   .strict()
+  .refine(input => !!input.documentId || input.evidence.length >= 10, {
+    message: 'Insira uma imagem do CREF ou uma evidência profissional de pelo menos 10 caracteres.',
+  })
 const decision = z
   .object({
     status: z.enum(['approved', 'rejected']),
@@ -63,6 +70,7 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
     async (req, reply) => {
       const user = requireUser(req, 'coach')
       const input = submission.parse(req.body)
+      input.cref = parseCref(input.cref)
       const id = await transaction(pool, async (client) => {
         if (input.documentId) {
           const document = await client.query(
@@ -94,13 +102,16 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
           )
         if (profile.verification_status === 'approved')
           fail(409, 'ALREADY_APPROVED', 'Seu perfil já foi aprovado.')
+        const pending = await client.query("SELECT 1 FROM verifications WHERE coach_id=$1 AND status='pending'", [user.id])
+        if (pending.rowCount)
+          fail(409, 'VERIFICATION_PENDING', 'Aguarde a confirmação do administrador antes de enviar novamente.')
         const { rows } = await client.query(
-          'INSERT INTO verifications(coach_id,cref,evidence,document_id) VALUES($1,$2,$3,$4) RETURNING id',
-          [user.id, input.cref, input.evidence, input.documentId || null],
+          'INSERT INTO verifications(coach_id,cref,evidence,document_id,qualification) VALUES($1,$2,$3,$4,$5) RETURNING id',
+          [user.id, input.cref, input.evidence, input.documentId || null, input.qualification || ''],
         )
         await client.query(
-          `UPDATE profiles SET cref=$1,verification_status='pending',verification_reason='' WHERE user_id=$2`,
-          [input.cref, user.id],
+          `UPDATE profiles SET cref=$1,verification_status='pending',verification_reason='',qualification=COALESCE($3,qualification) WHERE user_id=$2`,
+          [input.cref, user.id, input.qualification || null],
         )
         return rows[0].id as string
       })

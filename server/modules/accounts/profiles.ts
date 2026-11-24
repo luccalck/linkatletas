@@ -7,7 +7,7 @@ import { requireUser } from '../../shared/security.js'
 import { bodySchema, profileSchema } from '../../shared/validation.js'
 
 export const profileSelect = `SELECT u.id AS "userId",u.role,u.name,u.email,p.city,p.bio,p.sports,p.goals,p.levels,
- p.availability,p.mode,p.budget::float8,p.price::float8,p.cref,p.verification_status AS "verificationStatus",
+ p.availability,p.mode,p.budget::float8,p.price::float8,p.cref,p.qualification,p.verification_status AS "verificationStatus",
  p.verification_reason AS "verificationReason",p.verification_expires_at AS "verificationExpiresAt" FROM users u JOIN profiles p ON p.user_id=u.id`
 export async function profileFor(
   pool: Pool | PoolClient,

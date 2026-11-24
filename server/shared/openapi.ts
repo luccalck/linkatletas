@@ -33,6 +33,7 @@ const profile = object({
   budget: number,
   price: number,
   cref: string,
+  qualification: string,
   verificationStatus: string,
   verificationReason: string,
 })
@@ -49,6 +50,7 @@ const verification = object({
   coachId: uuid,
   coachName: string,
   cref: string,
+  qualification: string,
   evidence: string,
   status: string,
   reason: string,

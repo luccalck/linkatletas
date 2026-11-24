@@ -50,6 +50,8 @@ O arquivo cifrado e cada objeto têm limite de 128 MiB. A capacidade e a retenç
 
 O ensaio da aplicação restaurada cobre atleta, treinador e administrador: perfis, conferência manual de CREF, solicitação e aceite de contratação, prescrição, execução com feedback cifrado, persistência e permissões. As contas fictícias e a role temporária são removidas após o ensaio, inclusive quando ele falha. A [suíte isolada](../../tests/integration/neon-restored-flow.test.ts) também verifica essa limpeza.
 
+O esquema e os checksums restaurados são primeiro comparados com o manifesto original. Depois dessa conferência, migrations pendentes são aplicadas somente à base isolada antes do ensaio da aplicação atual. Isso permite testar backups anteriores à migration 010 sem alterar a cópia cifrada ou confundir o esquema original com o atualizado.
+
 Uma recuperação válida com mais de 26 horas recebe marcador histórico autenticado, sem executar a limpeza de retenção nem se apresentar como cópia recente. O monitor continua exigindo um snapshot recente; restaurar uma cópia antiga não resolve um alerta de atualidade. Os [testes históricos](../../tests/unit/neon-backup-history.test.ts) cobrem três e sete dias, cronologia inválida, adulteração e coexistência com marcador recente.
 
 [Voltar aos scripts](../README.md) · [Procedimento operacional](../../docs/operacao/manual.md)

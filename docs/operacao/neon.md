@@ -50,6 +50,8 @@ A migration 007 vincula avaliações aos participantes do contrato, limita comis
 
 A migration 009 adiciona finalidade, referência ao token, validade e estado de descarte à fila de e-mails. Deve ser aplicada antes da publicação do novo consumidor. Recuperações substituídas são removidas por FK; o consumidor não envia registros vencidos, utilizados ou legados sem classificação. O esquema gerado passa a ter 37 tabelas, 277 colunas e 48 FKs.
 
+A migration 010 acrescenta `qualification` em `profiles` e `verifications`, totalizando 279 colunas. Deve ser aplicada em Preview e Production com a conta de manutenção antes de publicar o código que consulta a formação profissional. O health executa uma consulta de disponibilidade e não detecta sozinho a ausência dessas colunas. O aplicativo pode omitir formação no envio: o servidor preserva o valor existente no perfil e registra esse valor no histórico da solicitação.
+
 Antes de publicar, aplicar e testar em banco `_test` isolado, conferir os dados existentes e usar manutenção com espera por locks limitada. Uma falha deve ser investigada, sem remover dados automaticamente para forçar a migração. Consultar os testes de [migrations](../../tests/integration/migrations.test.ts) e [integridade](../../tests/integration/database-rules.test.ts). O [dicionário](../banco/dicionario-dados.md), o [DER](../diagramas/der.mmd) e os metadados são gerados do esquema migrado, compatível com PostgreSQL 17 local e 18 do Neon.
 
 ## Filas, e-mails e escala a zero

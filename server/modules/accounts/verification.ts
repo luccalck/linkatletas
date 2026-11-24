@@ -85,7 +85,7 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
             )
         }
         const { rows: profiles } = await client.query(
-          'SELECT sports,levels,goals,availability,verification_status FROM profiles WHERE user_id=$1 FOR UPDATE',
+          'SELECT sports,levels,goals,availability,verification_status,qualification FROM profiles WHERE user_id=$1 FOR UPDATE',
           [user.id],
         )
         const profile = profiles[0]
@@ -107,7 +107,7 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
           fail(409, 'VERIFICATION_PENDING', 'Aguarde a confirmação do administrador antes de enviar novamente.')
         const { rows } = await client.query(
           'INSERT INTO verifications(coach_id,cref,evidence,document_id,qualification) VALUES($1,$2,$3,$4,$5) RETURNING id',
-          [user.id, input.cref, input.evidence, input.documentId || null, input.qualification || ''],
+          [user.id, input.cref, input.evidence, input.documentId || null, input.qualification ?? profile.qualification ?? ''],
         )
         await client.query(
           `UPDATE profiles SET cref=$1,verification_status='pending',verification_reason='',qualification=COALESCE($3,qualification) WHERE user_id=$2`,

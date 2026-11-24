@@ -79,6 +79,13 @@ export function VerificationForm({
         <label>CREF cadastrado<input value={profile.cref || 'Não informado'} readOnly /></label>
       </div>
       {profile.qualification && <p>Formação: {profile.qualification}</p>}
+      <p role="status" className="live-muted">
+        {pending || profile.verificationStatus === 'pending'
+          ? 'Aguarde a confirmação do administrador. Seu comprovante foi enviado para avaliação.'
+          : approved
+            ? 'CREF aprovado pelo administrador.'
+            : 'Insira uma imagem do CREF para ser avaliada. Após o envio, aguarde a confirmação do administrador.'}
+      </p>
       <State {...remote} retry={remote.reload} />
       {remote.data?.verifications.map((v) => (
         <article className="live-row" key={v.id}>
@@ -105,7 +112,7 @@ export function VerificationForm({
           <Badge status={v.status} />
         </article>
       ))}
-      {!approved && (
+      {!approved && !pending && profile.verificationStatus !== 'pending' && remote.data && !remote.error && (
         <form onSubmit={submit} className="live-form">
           <label>
             CREF

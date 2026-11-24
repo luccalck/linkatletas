@@ -224,6 +224,15 @@ export async function installWebFixture(
     } else {
       const body = request.postDataJSON() as Record<string, unknown>
       state.writes.push({ method, path, body })
+      if (method === 'PUT' && path.startsWith('/workouts/')) {
+        const workout = state.workouts.find(
+          (item) => path === '/workouts/' + item.id,
+        )
+        if (workout) {
+          Object.assign(workout, body)
+          return route.fulfill({ json: { workout } })
+        }
+      }
       if (method === 'POST' && path === '/billing/checkout')
         return route.fulfill({ json: { subscription: state.subscriptions[0] } })
       if (

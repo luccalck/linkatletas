@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { installWebFixture, webFixture } from './helpers/web-fixture.js'
+import { workoutSchema } from '../../server/shared/validation.js'
 
 test('atleta edita sua avaliacao depois do encerramento do vinculo', async ({
   page,
@@ -186,6 +187,41 @@ for (const role of ['athlete', 'coach'] as const) {
   )
 }
 
+for (const resource of ['contracts', 'metrics'] as const) {
+  test(
+    'falha de ' + resource + ' tem mensagem e recuperacao na interface',
+    async ({ page }) => {
+      const state = webFixture('athlete')
+      state.faults.add('/' + resource)
+      state.workouts[0].execution = {
+        id: '70000000-0000-4000-8000-000000000001',
+        completedBlocks: [0],
+        effort: 5,
+        notes: '',
+        metrics: { duration: 20 },
+        updatedAt: new Date().toISOString(),
+      }
+      await installWebFixture(page, state)
+      await page.goto(
+        resource === 'contracts' ? '/atleta/avaliacoes' : '/atleta/treino',
+      )
+      await expect(page.getByRole('alert')).toContainText('/' + resource)
+      state.faults.clear()
+      await page.getByRole('button', { name: /Tentar novamente/ }).click()
+      await expect(page.getByRole('alert')).toHaveCount(0)
+      if (resource === 'contracts')
+        await expect(
+          page.getByRole('button', { name: /Publicar avalia/ }),
+        ).toBeEnabled()
+      else
+        await expect(
+          page.locator('.live-execution-summary .live-tags'),
+        ).toContainText('Duracao: 20 min')
+      expect(state.writes).toEqual([])
+    },
+  )
+}
+
 test('perfil aceita todas as modalidades do catalogo e salva dentro do limite', async ({
   page,
 }) => {
@@ -221,6 +257,31 @@ test('perfil profissional mostra imediatamente o nome que acabou de ser salvo', 
   ).toHaveValue('Nome profissional atualizado')
   await expect(page.locator('.sidebar__user strong')).toHaveText(
     'Nome profissional atualizado',
+  )
+})
+
+test('editor preserva titulo e distancia validos nos limites aceitos pela API', async ({
+  page,
+}) => {
+  const state = webFixture('coach')
+  await installWebFixture(page, state)
+  await page.goto('/treinador/treinos')
+  await page.getByRole('button', { name: 'Editar treino', exact: true }).click()
+  const title = 'Treino valido ' + 'a'.repeat(144)
+  await page.getByLabel(/T.tulo/, { exact: false }).fill(title)
+  await expect(page.getByLabel(/T.tulo/, { exact: false })).toHaveValue(title)
+  await page.getByLabel(/Dist.ncia/).fill('1200')
+  await page
+    .getByRole('button', { name: 'Salvar rascunho', exact: true })
+    .click()
+  await expect(page.getByText(/Rascunho salvo/)).toBeVisible()
+  const saved = state.writes.find(
+    (write) => write.path === '/workouts/' + state.workouts[0].id,
+  )?.body
+  expect(workoutSchema.safeParse(saved).success).toBe(true)
+  expect(saved?.title).toBe(title)
+  expect(saved?.blocks).toEqual(
+    expect.arrayContaining([expect.objectContaining({ distanceKm: 1200 })]),
   )
 })
 

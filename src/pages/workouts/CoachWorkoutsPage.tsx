@@ -168,7 +168,7 @@ export function CoachWorkoutsPage() {
                 value={form.title}
                 onChange={(e) => set('title', e.target.value)}
                 minLength={3}
-                maxLength={150}
+                maxLength={160}
                 required
               />
             </label>
@@ -283,7 +283,7 @@ export function CoachWorkoutsPage() {
                       key: 'distanceKm',
                       label: 'Distância (km)',
                       step: 0.01,
-                      max: 1000,
+                      max: 1500,
                     },
                   ] as const
                 ).map(({ key, label, step, max }) => (

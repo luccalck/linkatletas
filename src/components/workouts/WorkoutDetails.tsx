@@ -6,6 +6,7 @@ import type {
 import { useAuth } from '../../context/AuthContext'
 import { useRemote } from '../../hooks/useRemote'
 import { MediaPanel } from '../media/MediaPanel'
+import { State } from '../ui/Feedback'
 
 export function WorkoutDetails({
   workout: w,
@@ -36,6 +37,7 @@ export function WorkoutDetails({
           </div>
         </div>
       ))}
+      <State {...catalog} retry={catalog.reload} />
       {w.execution && (
         <section className="live-execution-summary">
           <h4>Execução do atleta</h4>

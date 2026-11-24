@@ -60,6 +60,9 @@ export function ReviewsPage() {
       />
       <Notice error={error} success={success} />
       <State {...remote} retry={remote.reload} />
+      {user?.role === 'athlete' && (
+        <State {...contracts} retry={contracts.reload} />
+      )}
       {remote.data && (
         <div className="exp-review-summary live-panel">
           <Star size={28} />

@@ -103,12 +103,12 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
         if (profile.verification_status === 'approved')
           fail(409, 'ALREADY_APPROVED', 'Seu perfil já foi aprovado.')
         const { rows } = await client.query(
-          'INSERT INTO verifications(coach_id,cref,evidence,document_id) VALUES($1,$2,$3,$4) RETURNING id',
-          [user.id, input.cref, input.evidence, input.documentId || null],
+          'INSERT INTO verifications(coach_id,cref,evidence,document_id,qualification) VALUES($1,$2,$3,$4,$5) RETURNING id',
+          [user.id, input.cref, input.evidence, input.documentId || null, input.qualification || ''],
         )
         await client.query(
-          `UPDATE profiles SET cref=$1,verification_status='pending',verification_reason='' WHERE user_id=$2`,
-          [input.cref, user.id],
+          `UPDATE profiles SET cref=$1,verification_status='pending',verification_reason='',qualification=COALESCE($3,qualification) WHERE user_id=$2`,
+          [input.cref, user.id, input.qualification || null],
         )
         return rows[0].id as string
       })

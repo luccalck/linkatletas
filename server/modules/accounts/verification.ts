@@ -13,10 +13,14 @@ const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref
 const submission = z
   .object({
     cref: z.string().trim().min(4).max(50),
-    evidence: z.string().trim().min(10).max(2000),
+    qualification: z.enum(['Bacharelado', 'Licenciatura', 'Bacharelado e Licenciatura', 'Provisionado']).optional(),
+    evidence: z.string().trim().max(2000).default(''),
     documentId: idSchema.optional(),
   })
   .strict()
+  .refine(input => !!input.documentId || input.evidence.length >= 10, {
+    message: 'Insira uma imagem do CREF ou uma evidência profissional de pelo menos 10 caracteres.',
+  })
 const decision = z
   .object({
     status: z.enum(['approved', 'rejected']),

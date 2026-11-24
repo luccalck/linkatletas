@@ -8,7 +8,7 @@ import { requireUser } from '../../shared/security.js'
 import { bodySchema, idSchema } from '../../shared/validation.js'
 import { notifyUsers } from '../interactions/notifications.js'
 
-const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref,v.evidence,v.status,v.reason,
+const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref,v.qualification,v.evidence,v.status,v.reason,
  v.submitted_at AS "submittedAt",v.reviewed_at AS "reviewedAt",v.reviewer_id AS "reviewerId",v.document_id AS "documentId",v.expires_at AS "expiresAt",v.source,p.verification_status AS "currentStatus",p.verification_reason AS "currentReason" FROM verifications v JOIN users u ON u.id=v.coach_id JOIN profiles p ON p.user_id=v.coach_id`
 const submission = z
   .object({

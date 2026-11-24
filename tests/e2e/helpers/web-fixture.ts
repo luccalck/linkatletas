@@ -132,6 +132,7 @@ export async function installWebFixture(
   page: Page,
   state: ReturnType<typeof webFixture>,
 ) {
+  await page.routeWebSocket('**/api/events', () => {})
   await page.route('**/api/**', async (route) => {
     const request = route.request(),
       url = new URL(request.url()),

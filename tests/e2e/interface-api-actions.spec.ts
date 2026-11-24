@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import {
   journeyPassword,
@@ -32,9 +33,11 @@ test('avaliacao resposta denuncia moderacao e edicao apos encerramento persistem
       .fill('Resposta ficticia do profissional.')
     await coachReview.getByRole('button', { name: /Responder avalia/ }).click()
     await expect(
-      coachReview.getByText('Resposta ficticia do profissional.', {
-        exact: true,
-      }),
+      coachReview
+        .locator('.exp-feedback')
+        .getByText('Resposta ficticia do profissional.', {
+          exact: true,
+        }),
     ).toBeVisible()
     await flow.athlete.reload()
     await flow.athlete.getByRole('button', { name: /Denunciar conte/ }).click()
@@ -237,7 +240,7 @@ test('plano carteira e regras financeiras sao salvos sem criar cobranca academic
     await expect(
       flow.coach.getByText('Plano mensal salvo.', { exact: true }),
     ).toBeVisible()
-    const walletId = '50000000-0000-4000-8000-000000000001'
+    const walletId = randomUUID()
     await flow.coach
       .getByLabel('Identificador da carteira Asaas')
       .fill(walletId)
@@ -327,10 +330,33 @@ test('privacidade exportacao notificacoes e encerramento funcionam com persisten
       (await request(flow.athleteContext, baseURL!, 'GET', '/privacy/health'))
         .health,
     ).toBeNull()
+    for (const text of [
+      'Primeira mensagem ficticia.',
+      'Segunda mensagem ficticia.',
+    ]) {
+      await request(
+        flow.athleteContext,
+        baseURL!,
+        'POST',
+        '/contracts/' + flow.contract.id + '/messages',
+        { text },
+      )
+    }
     await flow.coach.goto('/treinador/notificacoes')
     await expect(
       flow.coach.getByRole('button', { name: 'Marcar todas como lidas' }),
     ).toBeEnabled()
+    await flow.coach
+      .getByRole('button', { name: 'Marcar como lida', exact: true })
+      .first()
+      .click()
+    await expect
+      .poll(
+        async () =>
+          (await request(flow.coachContext, baseURL!, 'GET', '/notifications'))
+            .unread,
+      )
+      .toBe(1)
     await flow.coach
       .getByRole('button', { name: 'Marcar todas como lidas' })
       .click()

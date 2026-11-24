@@ -111,17 +111,19 @@ test('cadastro → aprovação → contratação → publicação → execução
       await saveProfile(coach, 'coach')
       await coach.getByLabel('CREF', { exact: true }).fill('123456-G/SP')
       await coach
-        .getByLabel('Evidência profissional', { exact: true })
+        .getByLabel('Informações adicionais (opcional)', { exact: true })
         .fill('https://example.com/registro-ficticio-para-teste')
+      await coach.getByRole('combobox', { name: /^Formação profissional/ }).selectOption('Bacharelado')
+      await coach.getByLabel('Imagem do CREF para avaliação').setInputFiles({
+        name: 'cref-ficticio.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9uoAAAAASUVORK5CYII=', 'base64'),
+      })
       await coach
         .getByRole('button', { name: 'Enviar para análise', exact: true })
         .click()
-      await expect(
-        coach.getByRole('button', {
-          name: 'Análise em andamento',
-          exact: true,
-        }),
-      ).toBeDisabled()
+      await expect(coach.getByText('Aguarde a confirmação do administrador. Seu comprovante foi enviado para avaliação.', { exact: true })).toBeVisible()
+      await expect(coach.getByRole('button', { name: 'Enviar para análise', exact: true })).toHaveCount(0)
       await register(
         athlete,
         athleteName,

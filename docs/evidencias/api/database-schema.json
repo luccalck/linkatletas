@@ -1721,6 +1721,14 @@
     },
     {
       "table_name": "profiles",
+      "column_name": "qualification",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "table_name": "profiles",
       "column_name": "sports",
       "data_type": "ARRAY",
       "udt_name": "_text",
@@ -2142,6 +2150,14 @@
       "udt_name": "uuid",
       "is_nullable": "NO",
       "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "verifications",
+      "column_name": "qualification",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
     },
     {
       "table_name": "verifications",

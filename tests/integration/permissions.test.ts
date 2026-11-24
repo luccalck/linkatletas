@@ -40,7 +40,7 @@ const operations: Operation[] = [
   { method: 'GET', path: '/profiles/me' },
   { method: 'PUT', path: '/profiles/me', roles: ['athlete', 'coach'], payload: profile },
   { method: 'GET', path: '/verifications', roles: ['coach'] },
-  { method: 'POST', path: '/verifications', roles: ['coach'], payload: { cref: 'TESTE-1234', evidence: 'Evidencia ficticia de auditoria' } },
+  { method: 'POST', path: '/verifications', roles: ['coach'], payload: { cref: '000123-G/SP', evidence: 'Evidencia ficticia de auditoria' } },
   { method: 'GET', path: '/admin/verifications', roles: ['admin'] },
   { method: 'PATCH', path: '/admin/verifications/{id}', roles: ['admin'], payload: { status: 'approved', reason: 'Analise ficticia' } },
   { method: 'PATCH', path: '/admin/coaches/{id}/verification', roles: ['admin'], payload: { status: 'suspended', reason: 'Suspensao ficticia' } },
@@ -500,7 +500,7 @@ describe.sequential('Matriz de papeis e isolamento entre contas', () => {
     const c = await signup('coach', 'Treinador da modalidade')
     for (const actor of [a, c])
       expect((await request(actor, 'PUT', '/profiles/me', { ...profile, sports: [sport] })).statusCode).toBe(200)
-    const submission = await request(c, 'POST', '/verifications', { cref: 'TESTE-MODALIDADE', evidence: 'Comprovacao inteiramente ficticia de teste' })
+    const submission = await request(c, 'POST', '/verifications', { cref: '000123-G/SP', evidence: 'Comprovacao inteiramente ficticia de teste' })
     expect(submission.statusCode, submission.body).toBe(201)
     const id = submission.json().verification.id
     denied(await request(athlete, 'PATCH', '/admin/verifications/' + id, { status: 'approved', reason: 'Tentativa indevida' }), 403)

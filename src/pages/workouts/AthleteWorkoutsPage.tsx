@@ -1,5 +1,5 @@
 import { useRemote } from '../../hooks/useRemote'
-import type { Workout } from '../../../shared/contracts'
+import type { Contract, Workout } from '../../../shared/contracts'
 import { useState, useEffect } from 'react'
 import { PageTitle } from '../../components/ui/PageTitle'
 import { State, Notice, Empty } from '../../components/ui/Feedback'
@@ -10,15 +10,23 @@ import { ExecutionForm } from './ExecutionForm'
 
 export function AthleteWorkoutsPage() {
   const remote = useRemote<{ workouts: Workout[] }>('/workouts')
+  const contracts = useRemote<{ contracts: Contract[] }>('/contracts')
   const [selected, setSelected] = useState('')
   const [executing, setExecuting] = useState(false)
   const [success, setSuccess] = useState('')
   const w =
     remote.data?.workouts.find((w) => w.id === selected) ||
     remote.data?.workouts[0]
+  const active =
+    !contracts.loading &&
+    !contracts.error &&
+    !!contracts.data?.contracts.some(
+      (contract) =>
+        contract.id === w?.contractId && contract.status === 'active',
+    )
   useEffect(() => {
     setExecuting(false)
-  }, [selected])
+  }, [selected, active])
   return (
     <>
       <PageTitle
@@ -26,6 +34,7 @@ export function AthleteWorkoutsPage() {
         description="Confira as orientações, realize os exercícios e conte ao treinador como foi."
       />
       <State {...remote} retry={remote.reload} />
+      <State {...contracts} retry={contracts.reload} />
       <Notice success={success} />
       {remote.data && !remote.data.workouts.length && (
         <Empty>
@@ -62,19 +71,27 @@ export function AthleteWorkoutsPage() {
               </div>
               <Badge status={w.status} />
             </div>
-            <WorkoutDetails workout={w} />
-            <button
-              className="button button--dark"
-              onClick={() => setExecuting(!executing)}
-            >
-              {executing
-                ? 'Fechar registro'
-                : w.execution
-                  ? 'Atualizar execução'
-                  : 'Registrar execução'}
-            </button>
+            <WorkoutDetails workout={w} allowWrite={active} />
+            {active && (
+              <button
+                className="button button--dark"
+                onClick={() => setExecuting(!executing)}
+              >
+                {executing
+                  ? 'Fechar registro'
+                  : w.execution
+                    ? 'Atualizar execução'
+                    : 'Registrar execução'}
+              </button>
+            )}
+            {!active && !contracts.loading && !contracts.error && (
+              <p className="live-muted">
+                Historico preservado. Novos registros e arquivos exigem vinculo
+                ativo.
+              </p>
+            )}
           </section>
-          {executing && (
+          {executing && active && (
             <ExecutionForm
               key={w.id}
               workout={w}

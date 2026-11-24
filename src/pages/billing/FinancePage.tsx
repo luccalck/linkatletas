@@ -300,6 +300,8 @@ function CoachBillingSettings() {
     if (wallet.data?.wallet) setWalletId(wallet.data.wallet.walletId)
   }, [wallet.data])
   async function save(kind: 'plan' | 'wallet') {
+    const resource = kind === 'plan' ? plan : wallet
+    if (busy || resource.loading || resource.error || !resource.data) return
     setBusy(true)
     setError('')
     setSuccess('')
@@ -348,6 +350,7 @@ function CoachBillingSettings() {
             <input
               required
               minLength={3}
+              disabled={busy || plan.loading || !!plan.error || !plan.data}
               maxLength={100}
               value={form.name}
               onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
@@ -359,6 +362,7 @@ function CoachBillingSettings() {
               required
               type="number"
               min={1}
+              disabled={busy || plan.loading || !!plan.error || !plan.data}
               step="0.01"
               max={100000}
               value={form.amount}
@@ -370,6 +374,7 @@ function CoachBillingSettings() {
           <label className="exp-consent">
             <input
               type="checkbox"
+              disabled={busy || plan.loading || !!plan.error || !plan.data}
               checked={form.active}
               onChange={(e) =>
                 setForm((v) => ({ ...v, active: e.target.checked }))
@@ -377,7 +382,10 @@ function CoachBillingSettings() {
             />
             <span>Plano disponível para novas assinaturas</span>
           </label>
-          <button className="button button--outline" disabled={busy}>
+          <button
+            className="button button--outline"
+            disabled={busy || plan.loading || !!plan.error || !plan.data}
+          >
             <Save size={16} /> Salvar plano
           </button>
         </form>
@@ -393,6 +401,9 @@ function CoachBillingSettings() {
             <input
               required
               minLength={36}
+              disabled={
+                busy || wallet.loading || !!wallet.error || !wallet.data
+              }
               maxLength={36}
               pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
               value={walletId}
@@ -405,7 +416,10 @@ function CoachBillingSettings() {
             identificador não substitui a abertura ou verificação da conta no
             provedor.
           </p>
-          <button className="button button--outline" disabled={busy}>
+          <button
+            className="button button--outline"
+            disabled={busy || wallet.loading || !!wallet.error || !wallet.data}
+          >
             <Wallet size={16} /> Salvar carteira
           </button>
         </form>

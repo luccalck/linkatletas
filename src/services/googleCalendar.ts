@@ -1,4 +1,4 @@
-import type { Consultation } from './googleCalendar.types'
+import type { Consultation } from './googleCalendar.types.js'
 
 interface TokenResponse { access_token?: string; error?: string; error_description?: string }
 

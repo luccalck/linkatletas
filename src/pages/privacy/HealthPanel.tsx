@@ -12,6 +12,7 @@ export function HealthPanel() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const unavailable = busy || remote.loading || !!remote.error || !remote.data
   useEffect(() => {
     if (remote.data?.health)
       setForm({
@@ -25,6 +26,7 @@ export function HealthPanel() {
       className="live-panel live-form"
       onSubmit={async (e) => {
         e.preventDefault()
+        if (unavailable) return
         setBusy(true)
         setError('')
         setSuccess('')
@@ -58,6 +60,7 @@ export function HealthPanel() {
           <input
             type="number"
             min={30}
+            disabled={unavailable}
             max={300}
             step="any"
             value={form.height}
@@ -69,6 +72,7 @@ export function HealthPanel() {
           <input
             type="number"
             min={1}
+            disabled={unavailable}
             max={700}
             step="any"
             value={form.weight}
@@ -79,6 +83,7 @@ export function HealthPanel() {
       <label>
         Observações privadas
         <textarea
+          disabled={unavailable}
           rows={3}
           maxLength={4000}
           value={form.notes}
@@ -86,10 +91,7 @@ export function HealthPanel() {
         />
       </label>
       <Notice error={error} success={success} />
-      <button
-        className="button button--outline"
-        disabled={busy || remote.loading}
-      >
+      <button className="button button--outline" disabled={unavailable}>
         Salvar informações privadas
       </button>
     </form>

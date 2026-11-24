@@ -80,12 +80,12 @@ export function LandingPage() {
         ['Como os treinadores são verificados?', 'O cadastro profissional exige CREF e documentação. A administração faz a conferência manual, e o perfil permanece bloqueado até a aprovação.'],
         ['Posso ter acompanhamento 100% remoto?', 'Sim. Você pode filtrar entre atendimento online, presencial ou híbrido, conforme sua rotina e localização.'],
         ['Meus dados de saúde ficam seguros?', 'Os dados de saúde exigem consentimento específico e acesso autenticado. Você pode revogar esse consentimento na área de privacidade.'],
-      ].map(([q, a], i) => <article className={`faq-item ${faq === i ? 'open' : ''}`} key={q}><button onClick={() => setFaq(faq === i ? null : i)}><span>{q}</span><ChevronDown /></button><div><p>{a}</p></div></article>)}</div></div></section>
+      ].map(([q, a], i) => <article className={`faq-item ${faq === i ? 'open' : ''}`} key={q}><button aria-expanded={faq === i} aria-controls={`faq-answer-${i}`} onClick={() => setFaq(faq === i ? null : i)}><span>{q}</span><ChevronDown /></button><div id={`faq-answer-${i}`} aria-hidden={faq !== i}><p>{a}</p></div></article>)}</div></div></section>
 
       <section className="cta"><div className="container"><span className="eyebrow">Seu próximo passo começa agora</span><h2>Uma conexão pode mudar<br />toda a sua trajetória.</h2><p>Seja para encontrar direção ou ampliar seu impacto, há um lugar para você na LinkAtletas.</p><div><Link className="button button--accent button--large" to="/login?perfil=atleta">Quero evoluir <ArrowRight size={18} /></Link><Link className="button button--ghost-light button--large" to="/login?perfil=treinador">Quero treinar atletas</Link></div></div></section>
     </main>
 
     <footer className="footer"><div className="container"><div className="footer__brand"><Logo light /><p>Conexões que transformam esforço em evolução.</p></div><div><strong>Plataforma</strong><a href="#como-funciona">Como funciona</a><a href="#recursos">Recursos</a><Link to="/login">Entrar</Link></div><div><strong>Confiança</strong><a href="#seguranca">Segurança</a><a href="#seguranca">Privacidade</a><a href="#seguranca">LGPD</a></div><div><strong>Projeto</strong><span>SENAI Félix Guisard</span><span>Equipe LinkAtletas</span><span>Projeto Integrador II</span></div></div><div className="footer__bottom container"><span>© 2026 LinkAtletas. Projeto acadêmico.</span><span>Feito para conectar movimento e propósito.</span></div></footer>
-    <a className="whatsapp" href="#perguntas" aria-label="Fale conosco"><MessageSquare size={21} /></a>
+    <a className="whatsapp" href="#perguntas" aria-label="Perguntas frequentes" title="Perguntas frequentes"><MessageSquare size={21} /></a>
   </div>
 }

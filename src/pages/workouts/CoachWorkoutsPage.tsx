@@ -45,6 +45,10 @@ export function CoachWorkoutsPage() {
   const [view, setView] = useState<string | null>(null)
   const active =
     contracts.data?.contracts.filter((c) => c.status === 'active') || []
+  const canWrite = (contractId: string) =>
+    !contracts.loading &&
+    !contracts.error &&
+    active.some((contract) => contract.id === contractId)
   function edit(w: Workout) {
     setEditing(w.id)
     setForm({
@@ -76,6 +80,7 @@ export function CoachWorkoutsPage() {
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!form) return
+    if (!canWrite(form.contractId)) return
     const submitter = (e.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null
     const status = submitter?.value === 'published' ? 'published' : 'draft'
@@ -109,7 +114,9 @@ export function CoachWorkoutsPage() {
         action={
           <button
             className="button button--dark"
-            disabled={contracts.loading || !active.length}
+            disabled={
+              busy || contracts.loading || !!contracts.error || !active.length
+            }
             onClick={() => {
               setEditing(null)
               setForm(blankWorkout(active[0]?.id))
@@ -131,7 +138,7 @@ export function CoachWorkoutsPage() {
           treinos.
         </Empty>
       )}
-      {form && (
+      {form && canWrite(form.contractId) && (
         <form
           className="live-panel live-form live-workout-editor"
           onSubmit={save}
@@ -161,7 +168,7 @@ export function CoachWorkoutsPage() {
                 value={form.title}
                 onChange={(e) => set('title', e.target.value)}
                 minLength={3}
-                maxLength={150}
+                maxLength={160}
                 required
               />
             </label>
@@ -276,7 +283,7 @@ export function CoachWorkoutsPage() {
                       key: 'distanceKm',
                       label: 'Distância (km)',
                       step: 0.01,
-                      max: 1000,
+                      max: 1500,
                     },
                   ] as const
                 ).map(({ key, label, step, max }) => (
@@ -372,7 +379,7 @@ export function CoachWorkoutsPage() {
               >
                 {view === w.id ? 'Ocultar detalhes' : 'Ver detalhes e execução'}
               </button>
-              {!w.execution && (
+              {!w.execution && canWrite(w.contractId) && (
                 <button className="button button--dark" onClick={() => edit(w)}>
                   Editar treino
                 </button>
@@ -383,7 +390,9 @@ export function CoachWorkoutsPage() {
                 </span>
               )}
             </div>
-            {view === w.id && <WorkoutDetails workout={w} />}
+            {view === w.id && (
+              <WorkoutDetails workout={w} allowWrite={canWrite(w.contractId)} />
+            )}
           </article>
         ))}
       </div>

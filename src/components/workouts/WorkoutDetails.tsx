@@ -1,9 +1,20 @@
-import type { Workout, MetricType, ExerciseBlock } from '../../../shared/contracts'
+import type {
+  Workout,
+  MetricType,
+  ExerciseBlock,
+} from '../../../shared/contracts'
 import { useAuth } from '../../context/AuthContext'
 import { useRemote } from '../../hooks/useRemote'
 import { MediaPanel } from '../media/MediaPanel'
+import { State } from '../ui/Feedback'
 
-export function WorkoutDetails({ workout: w }: { workout: Workout }) {
+export function WorkoutDetails({
+  workout: w,
+  allowWrite,
+}: {
+  workout: Workout
+  allowWrite: boolean
+}) {
   const { user } = useAuth()
   const catalog = useRemote<{ metrics: MetricType[] }>(
     '/metrics?sport=' + encodeURIComponent(w.sport),
@@ -26,6 +37,7 @@ export function WorkoutDetails({ workout: w }: { workout: Workout }) {
           </div>
         </div>
       ))}
+      <State {...catalog} retry={catalog.reload} />
       {w.execution && (
         <section className="live-execution-summary">
           <h4>Execução do atleta</h4>
@@ -52,8 +64,10 @@ export function WorkoutDetails({ workout: w }: { workout: Workout }) {
         </section>
       )}
       <MediaPanel
+        key={w.id}
         resourceId={w.id}
         purpose={user?.role === 'coach' ? 'instruction' : 'performance'}
+        allowUpload={allowWrite}
       />
     </div>
   )

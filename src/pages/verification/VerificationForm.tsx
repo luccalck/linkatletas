@@ -38,6 +38,7 @@ export function VerificationForm({
     setError('')
     setSuccess('')
     try {
+      if (!file && !documentId) throw new Error('Insira uma imagem ou PDF do CREF para avaliação.')
       let document = documentId
       if (file && !document && user) {
         document = (await uploadFile(file, 'verification', user.id)).media.id
@@ -125,31 +126,31 @@ export function VerificationForm({
             </select>
           </label>
           <label>
-            Evidência profissional
+            Informações adicionais (opcional)
             <textarea
               value={evidence}
               onChange={(e) => setEvidence(e.target.value)}
-              required
-              minLength={10}
               maxLength={2000}
-              placeholder="Informe o link público de consulta ao registro e informações para verificação."
+              placeholder="Se desejar, inclua um link de consulta ou observações para o administrador."
               rows={3}
             />
           </label>
           <p className="live-muted">
             Complete seu perfil antes de enviar. Use apenas informações
-            profissionais. A evidência é revisada pelo administrador.
+            profissionais. Seu comprovante é privado e será revisado pelo administrador.
           </p>
           <label>
-            Documento profissional privado (opcional)
+            Imagem do CREF para avaliação
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,application/pdf"
+              required={!documentId}
               onChange={(e) => {
                 setFile(e.target.files?.[0] || null)
                 setDocumentId(null)
               }}
             />
+            <small>Envie uma imagem legível (JPG, PNG ou WebP) ou PDF da carteira profissional.</small>
           </label>
           <Notice error={error} success={success} />
           <button className="button button--dark" disabled={busy || pending}>

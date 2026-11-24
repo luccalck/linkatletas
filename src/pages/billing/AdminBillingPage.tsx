@@ -15,6 +15,7 @@ export function AdminBillingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const unavailable = busy || config.loading || !!config.error || !config.data
   useEffect(() => {
     if (config.data) {
       setCommission(config.data.commissionBps / 100)
@@ -33,6 +34,7 @@ export function AdminBillingPage() {
         className="live-panel live-form"
         onSubmit={async (e) => {
           e.preventDefault()
+          if (unavailable) return
           setBusy(true)
           setError('')
           setSuccess('')
@@ -58,6 +60,7 @@ export function AdminBillingPage() {
           <input
             required
             type="number"
+            disabled={unavailable}
             min={0}
             max={50}
             step="0.01"
@@ -70,6 +73,7 @@ export function AdminBillingPage() {
           <input
             required
             type="number"
+            disabled={unavailable}
             min={0}
             max={30}
             step={1}
@@ -78,7 +82,7 @@ export function AdminBillingPage() {
           />
         </label>
         <Notice error={error} success={success} />
-        <button className="button button--dark" disabled={busy}>
+        <button className="button button--dark" disabled={unavailable}>
           <Save size={16} /> Salvar regras financeiras
         </button>
       </form>

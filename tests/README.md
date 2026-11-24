@@ -87,8 +87,14 @@ Grande parte dessas suítes chama as rotas com `app.inject`: a requisição perc
 |---|---|
 | [training-flow.spec.ts](e2e/training-flow.spec.ts) | Login inválido em tela móvel e jornada de cadastro → aprovação administrativa → contratação → publicação → execução persistida. |
 | [expansion.spec.ts](e2e/expansion.spec.ts) | Mensagens, agenda, avaliações, consentimento, mídia, financeiro acadêmico, recuperação pela interface, teclado, responsividade e verificações automáticas com axe. |
+| [coach-verification.spec.ts](e2e/coach-verification.spec.ts) | Dados profissionais salvos, análise pendente, aprovação e validação do CREF antes do envio de comprovante, com API controlada. |
+| [interface-navigation.spec.ts](e2e/interface-navigation.spec.ts) | Navegação de atleta, treinador e administrador, destinos do menu, erros de execução e largura de tela, com respostas controladas da API. |
+| [interface-regressions.spec.ts](e2e/interface-regressions.spec.ts) | Edição de avaliação após encerramento, falhas de carregamento, troca de treino, histórico e atualização do perfil. Usa falhas controladas para reproduzir os estados da interface. |
+| [interface-api-actions.spec.ts](e2e/interface-api-actions.spec.ts) | Operações reais da interface e API: respostas, denúncias e moderação de avaliações, agenda, plano/carteira, regras financeiras, exportação, notificações e encerramento de conta. Somente servidor local e banco de teste. |
 
-O Playwright inicia os serviços da aplicação para a suíte local, usa uma base isolada e abre sessões para os atores do cenário. Por padrão, cada cenário é executado nos três motores configurados. Assim, cinco cenários repetidos em três motores geram quinze execuções; isso não significa quinze funcionalidades independentes.
+O Playwright inicia os serviços da aplicação para a suíte local, usa uma base isolada e abre sessões para os atores do cenário. Por padrão, cada cenário é executado nos três motores configurados; repetições por motor não significam funcionalidades independentes. Os [helpers](e2e/helpers) separam respostas controladas da API das jornadas com servidor real. Uma resposta simulada confirma comportamento da interface, mas não prova persistência no PostgreSQL nem homologação de um fornecedor externo.
+
+O [teste do Google Agenda web](unit/google-calendar-web.test.ts) confere configuração, recusa de consentimento, formato do evento e nova autorização após expiração, usando SDK e HTTP controlados. Não acessa uma conta Google nem cria eventos reais. Os controles financeiros também são exercitados com respostas controladas em sandbox fictício; isso não representa cobrança ou homologação no Asaas.
 
 ### Testes do aplicativo móvel
 

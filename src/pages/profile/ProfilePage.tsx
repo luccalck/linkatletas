@@ -57,7 +57,7 @@ function Choices({
 }
 
 export function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateName } = useAuth()
   const remote = useRemote<{ profile: Profile }>('/profiles/me')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,6 +105,8 @@ export function ProfilePage() {
         }),
       )
       setProfile(data.profile)
+      updateName(data.profile.name)
+      await remote.reload()
       setSuccess('Perfil salvo com sucesso.')
     } catch (e) {
       setError(message(e))

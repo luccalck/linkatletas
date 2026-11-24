@@ -88,40 +88,42 @@ export function MediaPanel({
               <p>{f.text}</p>
             </div>
           ))}
-          {user?.role === 'coach' && m.purpose === 'performance' && (
-            <form
-              className="live-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-                void perform(async () => {
-                  await api(
-                    '/media/' + m.id + '/feedback',
-                    json('POST', { text: text[m.id] }),
-                  )
-                  setText((v) => ({ ...v, [m.id]: '' }))
-                }, 'Correção registrada.')
-              }}
-            >
-              <label>
-                Comentário sobre {m.name}
-                <textarea
-                  required
-                  minLength={2}
-                  maxLength={2000}
-                  rows={2}
-                  value={text[m.id] || ''}
-                  onChange={(e) =>
-                    setText((v) => ({ ...v, [m.id]: e.target.value }))
-                  }
-                />
-              </label>
-              <div className="live-actions">
-                <button className="button button--outline" disabled={busy}>
-                  Enviar correção técnica
-                </button>
-              </div>
-            </form>
-          )}
+          {allowUpload &&
+            user?.role === 'coach' &&
+            m.purpose === 'performance' && (
+              <form
+                className="live-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void perform(async () => {
+                    await api(
+                      '/media/' + m.id + '/feedback',
+                      json('POST', { text: text[m.id] }),
+                    )
+                    setText((v) => ({ ...v, [m.id]: '' }))
+                  }, 'Correção registrada.')
+                }}
+              >
+                <label>
+                  Comentário sobre {m.name}
+                  <textarea
+                    required
+                    minLength={2}
+                    maxLength={2000}
+                    rows={2}
+                    value={text[m.id] || ''}
+                    onChange={(e) =>
+                      setText((v) => ({ ...v, [m.id]: e.target.value }))
+                    }
+                  />
+                </label>
+                <div className="live-actions">
+                  <button className="button button--outline" disabled={busy}>
+                    Enviar correção técnica
+                  </button>
+                </div>
+              </form>
+            )}
           {m.ownerId === user?.id && (
             <button
               type="button"

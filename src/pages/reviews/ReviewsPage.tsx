@@ -33,6 +33,11 @@ export function ReviewsPage() {
     contracts.data?.contracts.filter(
       (c) => c.status === 'active' && (!coachId || c.coachId === coachId),
     ) || []
+  const choices = editing
+    ? contracts.data?.contracts.filter(
+        (contract) => contract.id === form.contractId,
+      ) || []
+    : eligible
   async function perform(action: () => Promise<unknown>, text: string) {
     setBusy(true)
     setError('')
@@ -102,10 +107,10 @@ export function ReviewsPage() {
                 setForm((v) => ({ ...v, contractId: e.target.value }))
               }
             >
-              {!eligible.length && (
+              {!choices.length && (
                 <option value="">Nenhum vínculo ativo</option>
               )}
-              {eligible.map((c) => (
+              {choices.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.coachName}
                 </option>
@@ -141,7 +146,7 @@ export function ReviewsPage() {
           <div className="live-actions">
             <button
               className="button button--dark"
-              disabled={busy || !eligible.length}
+              disabled={busy || (!editing && !eligible.length)}
             >
               <Star size={16} />{' '}
               {editing ? 'Salvar edição' : 'Publicar avaliação'}

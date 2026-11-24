@@ -1,5 +1,11 @@
 import type { AppUser, Role } from '../../shared/contracts'
-import { createContext, type ReactNode, useState, useEffect, useContext } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useState,
+  useEffect,
+  useContext,
+} from 'react'
 import { api, json } from '../services/api'
 
 interface AuthContextValue {
@@ -15,6 +21,7 @@ interface AuthContextValue {
   ) => Promise<AppUser>
   logout: () => Promise<void>
   refresh: () => Promise<void>
+  updateName: (name: string) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -69,9 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api('/auth/logout', json('POST', {}))
     setUser(null)
   }
+  function updateName(name: string) {
+    setUser((current) => (current ? { ...current, name } : null))
+  }
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, login, register, logout, refresh }}
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        register,
+        logout,
+        refresh,
+        updateName,
+      }}
     >
       {children}
     </AuthContext.Provider>

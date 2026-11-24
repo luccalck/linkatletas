@@ -9,9 +9,10 @@ const documentId = '22222222-2222-4222-8222-222222222222'
 const verificationId = '33333333-3333-4333-8333-333333333333'
 const payload = { cref: '123-G/SP', qualification: 'Bacharelado', documentId }
 let pending = false, validDocument = true
+let savedQualification = ''
 const query = vi.fn(async (sql: string, _values?: unknown[]) => {
   if (sql.includes('FROM media')) return { rows: [], rowCount: validDocument ? 1 : 0 }
-  if (sql.includes('FROM profiles') && sql.includes('FOR UPDATE')) return { rows: [{ sports: ['Corrida'], levels: ['Iniciante'], goals: ['Performance'], availability: ['Segunda manhã'], verification_status: 'unsubmitted' }], rowCount: 1 }
+  if (sql.includes('FROM profiles') && sql.includes('FOR UPDATE')) return { rows: [{ sports: ['Corrida'], levels: ['Iniciante'], goals: ['Performance'], availability: ['Segunda manhã'], verification_status: 'unsubmitted', qualification: savedQualification }], rowCount: 1 }
   if (sql.startsWith('SELECT 1 FROM verifications')) return { rows: [], rowCount: pending ? 1 : 0 }
   if (sql.startsWith('INSERT INTO verifications')) return { rows: [{ id: verificationId }], rowCount: 1 }
   return { rows: [], rowCount: 0 }
@@ -26,7 +27,7 @@ beforeAll(async () => {
   await verificationRoutes(app, pool)
   await app.ready()
 })
-beforeEach(() => { vi.clearAllMocks(); pending = false; validDocument = true })
+beforeEach(() => { vi.clearAllMocks(); pending = false; validDocument = true; savedQualification = '' })
 afterAll(async () => { await app.close() })
 const submit = (data: object) => app.inject({ method: 'POST', url: '/verifications', payload: data })
 
@@ -61,4 +62,11 @@ it('preserva compatibilidade com evidência textual e não apaga formação exis
   const response = await submit({ cref: payload.cref, evidence: 'Consulta profissional disponível para conferência.' })
   expect(response.statusCode, response.body).toBe(201)
   expect(query).toHaveBeenCalledWith(expect.stringContaining('qualification=COALESCE'), ['000123-G/SP', coach.id, null])
+})
+
+it('preserva no historico a formacao salva quando o cliente omite o campo', async () => {
+  savedQualification = 'Licenciatura'
+  const response = await submit({ cref: payload.cref, evidence: 'Consulta profissional para conferencia.' })
+  expect(response.statusCode, response.body).toBe(201)
+  expect(query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO verifications'), [coach.id, '000123-G/SP', 'Consulta profissional para conferencia.', null, 'Licenciatura'])
 })

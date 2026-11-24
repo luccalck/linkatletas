@@ -1,4 +1,5 @@
 import type { Profile, Verification } from '../../../shared/contracts'
+import { parseCref } from '../../../shared/cref'
 import { useAuth } from '../../context/AuthContext'
 import { useRemote } from '../../hooks/useRemote'
 import { useEffect, useState } from 'react'
@@ -38,6 +39,7 @@ export function VerificationForm({
     setError('')
     setSuccess('')
     try {
+      const normalizedCref = parseCref(cref)
       if (!file && !documentId) throw new Error('Insira uma imagem ou PDF do CREF para avaliação.')
       let document = documentId
       if (file && !document && user) {
@@ -47,7 +49,7 @@ export function VerificationForm({
       await api(
         '/verifications',
         json('POST', {
-          cref,
+          cref: normalizedCref,
           qualification,
           evidence,
           ...(document ? { documentId: document } : {}),

@@ -689,6 +689,7 @@ Restrições:
 | verification_status | text | Não | — |
 | verification_reason | text | Não | — |
 | verification_expires_at | timestamp with time zone | Sim | — |
+| qualification | text | Não | — |
 
 Restrições:
 
@@ -790,8 +791,8 @@ Restrições:
 | Coluna | Tipo PostgreSQL | Nulo | Chave/restrição |
 |---|---|---|---|
 | version | text | Não | PK |
-| checksum | text | Não | — |
 | applied_at | timestamp with time zone | Não | — |
+| checksum | text | Não | — |
 
 Restrições:
 
@@ -888,6 +889,7 @@ Restrições:
 | document_id | uuid | Sim | FK → media |
 | expires_at | timestamp with time zone | Sim | — |
 | source | text | Não | — |
+| qualification | text | Não | — |
 
 Restrições:
 

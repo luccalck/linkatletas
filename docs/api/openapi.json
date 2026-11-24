@@ -2092,6 +2092,9 @@
                         "cref": {
                           "type": "string"
                         },
+                        "qualification": {
+                          "type": "string"
+                        },
                         "verificationStatus": {
                           "type": "string"
                         },
@@ -2114,6 +2117,7 @@
                         "budget",
                         "price",
                         "cref",
+                        "qualification",
                         "verificationStatus",
                         "verificationReason"
                       ],
@@ -2543,6 +2547,9 @@
                         "cref": {
                           "type": "string"
                         },
+                        "qualification": {
+                          "type": "string"
+                        },
                         "verificationStatus": {
                           "type": "string"
                         },
@@ -2565,6 +2572,7 @@
                         "budget",
                         "price",
                         "cref",
+                        "qualification",
                         "verificationStatus",
                         "verificationReason"
                       ],
@@ -2840,6 +2848,9 @@
                           "cref": {
                             "type": "string"
                           },
+                          "qualification": {
+                            "type": "string"
+                          },
                           "evidence": {
                             "type": "string"
                           },
@@ -2867,6 +2878,7 @@
                           "coachId",
                           "coachName",
                           "cref",
+                          "qualification",
                           "evidence",
                           "status",
                           "reason",
@@ -3130,9 +3142,18 @@
                     "minLength": 4,
                     "maxLength": 50
                   },
-                  "evidence": {
+                  "qualification": {
                     "type": "string",
-                    "minLength": 10,
+                    "enum": [
+                      "Bacharelado",
+                      "Licenciatura",
+                      "Bacharelado e Licenciatura",
+                      "Provisionado"
+                    ]
+                  },
+                  "evidence": {
+                    "default": "",
+                    "type": "string",
                     "maxLength": 2000
                   },
                   "documentId": {
@@ -3175,6 +3196,9 @@
                         "cref": {
                           "type": "string"
                         },
+                        "qualification": {
+                          "type": "string"
+                        },
                         "evidence": {
                           "type": "string"
                         },
@@ -3202,6 +3226,7 @@
                         "coachId",
                         "coachName",
                         "cref",
+                        "qualification",
                         "evidence",
                         "status",
                         "reason",
@@ -3481,6 +3506,9 @@
                           "cref": {
                             "type": "string"
                           },
+                          "qualification": {
+                            "type": "string"
+                          },
                           "evidence": {
                             "type": "string"
                           },
@@ -3508,6 +3536,7 @@
                           "coachId",
                           "coachName",
                           "cref",
+                          "qualification",
                           "evidence",
                           "status",
                           "reason",
@@ -3831,6 +3860,9 @@
                         "cref": {
                           "type": "string"
                         },
+                        "qualification": {
+                          "type": "string"
+                        },
                         "evidence": {
                           "type": "string"
                         },
@@ -3858,6 +3890,7 @@
                         "coachId",
                         "coachName",
                         "cref",
+                        "qualification",
                         "evidence",
                         "status",
                         "reason",
@@ -4490,6 +4523,9 @@
                             "type": "number"
                           },
                           "cref": {
+                            "type": "string"
+                          },
+                          "qualification": {
                             "type": "string"
                           },
                           "verificationStatus": {

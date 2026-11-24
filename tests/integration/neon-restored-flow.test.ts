@@ -28,10 +28,18 @@ describe('aplicacao recuperada com privilegios limitados e tres perfis', () => {
   it('executa fluxo completo e remove somente as fixtures do proprio ensaio', async () => {
     const usersBefore = (await database.query('SELECT id,email FROM users ORDER BY id')).rows
     const rowsBefore = (await database.query('SELECT (SELECT count(*)::int FROM contracts) AS contracts,(SELECT count(*)::int FROM workouts) AS workouts,(SELECT count(*)::int FROM executions) AS executions')).rows
+    await database.query("ALTER TABLE profiles DROP COLUMN qualification; ALTER TABLE verifications DROP COLUMN qualification; DELETE FROM schema_migrations WHERE version='010_professional_qualification.sql'")
     process.env.DATA_ENCRYPTION_KEY ??= randomBytes(32).toString('base64')
     Object.assign(process.env, { NEON_BACKUP_RESTORE_S3_ENDPOINT: 'http://127.0.0.1:8333', NEON_BACKUP_RESTORE_S3_BUCKET: 'linkatletas-restore-flow-test', NEON_BACKUP_RESTORE_S3_ACCESS_KEY: 'linkatletas-local', NEON_BACKUP_RESTORE_S3_SECRET_KEY: 'local-only-change-in-production' })
     const archive = { tableCounts: Object.fromEntries(Object.keys(runtimePrivileges).map((table) => [table, 0])), runtimePrivileges } as unknown as FullNeonArchive
-    const outcome = await verifyRestoredApplication(database, url, archive)
+    let outcome: Awaited<ReturnType<typeof verifyRestoredApplication>>
+    try {
+      outcome = await verifyRestoredApplication(database, url, archive)
+    } finally {
+      const pool = createPool(url.toString())
+      try { await migrate(pool) } finally { await pool.end() }
+    }
+    expect((await database.query("SELECT count(*)::int AS total FROM schema_migrations WHERE version='010_professional_qualification.sql'")).rows[0].total).toBe(1)
     expect(outcome.roles).toEqual({ athlete: true, coach: true, admin: true })
     expect(outcome.mainFlow).toEqual({ manualVerification: true, request: true, acceptance: true, prescription: true, execution: true, feedbackRead: true })
     expect(outcome.forbiddenOperationsRejected).toBe(true)

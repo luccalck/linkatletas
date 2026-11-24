@@ -61,6 +61,13 @@ export async function verifyRestoredApplication(database: pg.Client, url: URL, a
   let pool: pg.Pool | undefined
   let roleCreated = false
   try {
+    const maintenance = new pg.Pool({ connectionString: url.toString(), max: 1, connectionTimeoutMillis: 15000 })
+    try {
+      const { migrate } = await import('../../server/db/migrate.js')
+      await migrate(maintenance)
+    } finally {
+      await maintenance.end()
+    }
     await database.query(`CREATE ROLE ${pg.escapeIdentifier(role)} LOGIN PASSWORD ${pg.escapeLiteral(password)} NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`)
     roleCreated = true
     await database.query(`GRANT ${pg.escapeIdentifier(role)} TO CURRENT_USER`)

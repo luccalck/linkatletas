@@ -3,8 +3,13 @@ import { expect, test } from '@playwright/test'
 for (const status of ['unsubmitted', 'pending', 'approved'] as const) {
   test(`verificação profissional exibe dados salvos: ${status}`, async ({ page }) => {
     const user = { id: 'coach-1', name: 'João da Silva', email: 'coach@example.com', role: 'coach' }
+    let uploads = 0
     await page.route('**/api/**', route => {
       const path = new URL(route.request().url()).pathname
+      if (path === '/api/media' && route.request().method() === 'POST') {
+        uploads++
+        return route.fulfill({ status: 400, json: { message: 'Upload inesperado.' } })
+      }
       if (path === '/api/auth/session') return route.fulfill({ json: { user } })
       if (path === '/api/profiles/me') return route.fulfill({ json: { profile: {
         ...user, userId: user.id, city: '', bio: '', sports: [], goals: [], levels: [], availability: [],
@@ -26,6 +31,11 @@ for (const status of ['unsubmitted', 'pending', 'approved'] as const) {
       await expect(page.getByRole('combobox', { name: /^Formação profissional/ })).toHaveValue('Bacharelado')
       await expect(page.locator('input[type=file]')).toHaveAttribute('required', '')
       await expect(page.getByRole('button', { name: 'Enviar para análise' })).toBeVisible()
+      await page.getByLabel('CREF', { exact: true }).fill('INVALIDO')
+      await page.locator('input[type=file]').setInputFiles({ name: 'cref.png', mimeType: 'image/png', buffer: Buffer.from('arquivo ficticio') })
+      await page.getByRole('button', { name: /Enviar para an/ }).click()
+      await expect(page.getByRole('alert')).toContainText('CREF profissional com UF')
+      expect(uploads).toBe(0)
     } else {
       await expect(page.getByRole('button', { name: 'Enviar para análise' })).toHaveCount(0)
       await expect(page.getByText(status === 'pending' ? /Aguarde a confirmação do administrador\. Seu comprovante/ : 'CREF aprovado pelo administrador.', { exact: true })).toBeVisible()

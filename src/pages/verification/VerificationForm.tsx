@@ -21,9 +21,11 @@ export function VerificationForm({
     '/verifications',
   )
   const [cref, setCref] = useState(profile.cref)
+  const [qualification, setQualification] = useState(profile.qualification || '')
   useEffect(() => {
     setCref(profile.cref)
-  }, [profile.cref])
+    setQualification(profile.qualification || '')
+  }, [profile.cref, profile.qualification])
   const [evidence, setEvidence] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +47,7 @@ export function VerificationForm({
         '/verifications',
         json('POST', {
           cref,
+          qualification,
           evidence,
           ...(document ? { documentId: document } : {}),
         }),
@@ -74,11 +77,13 @@ export function VerificationForm({
         <label>Nome do profissional<input value={profile.name} readOnly /></label>
         <label>CREF cadastrado<input value={profile.cref || 'Não informado'} readOnly /></label>
       </div>
+      {profile.qualification && <p>Formação: {profile.qualification}</p>}
       <State {...remote} retry={remote.reload} />
       {remote.data?.verifications.map((v) => (
         <article className="live-row" key={v.id}>
           <div>
             <strong>{v.cref}</strong>
+            {v.qualification && <p>{v.qualification}</p>}
             <p>{v.reason || 'Solicitação enviada para análise.'}</p>
             {v.expiresAt && (
               <small>
@@ -111,6 +116,13 @@ export function VerificationForm({
               maxLength={50}
               onChange={(e) => setCref(e.target.value)}
             />
+          </label>
+          <label>
+            Formação profissional
+            <select value={qualification} required onChange={e => setQualification(e.target.value)}>
+              <option value="">Selecione sua formação</option>
+              {['Bacharelado', 'Licenciatura', 'Bacharelado e Licenciatura', 'Provisionado'].map(value => <option key={value}>{value}</option>)}
+            </select>
           </label>
           <label>
             Evidência profissional

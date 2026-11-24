@@ -1,7 +1,7 @@
 import type { Profile, Verification } from '../../../shared/contracts'
 import { useAuth } from '../../context/AuthContext'
 import { useRemote } from '../../hooks/useRemote'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { uploadFile } from '../../services/media'
 import { api, json } from '../../services/api'
 import { message } from '../../utils/errors'
@@ -21,6 +21,9 @@ export function VerificationForm({
     '/verifications',
   )
   const [cref, setCref] = useState(profile.cref)
+  useEffect(() => {
+    setCref(profile.cref)
+  }, [profile.cref])
   const [evidence, setEvidence] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -66,6 +69,10 @@ export function VerificationForm({
           </h3>
           <p>Seu perfil aparece na busca após a aprovação manual do CREF.</p>
         </div>
+      </div>
+      <div className="live-form live-grid-2">
+        <label>Nome do profissional<input value={profile.name} readOnly /></label>
+        <label>CREF cadastrado<input value={profile.cref || 'Não informado'} readOnly /></label>
       </div>
       <State {...remote} retry={remote.reload} />
       {remote.data?.verifications.map((v) => (

@@ -239,7 +239,7 @@ export function ProfilePage() {
           {user?.role === 'coach' && (
             <VerificationForm
               onChange={remote.reload}
-              currentStatus={profile.verificationStatus}
+              profile={remote.data?.profile || profile}
             />
           )}
         </div>

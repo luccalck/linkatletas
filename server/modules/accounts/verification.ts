@@ -102,6 +102,9 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
           )
         if (profile.verification_status === 'approved')
           fail(409, 'ALREADY_APPROVED', 'Seu perfil já foi aprovado.')
+        const pending = await client.query("SELECT 1 FROM verifications WHERE coach_id=$1 AND status='pending'", [user.id])
+        if (pending.rowCount)
+          fail(409, 'VERIFICATION_PENDING', 'Aguarde a confirmação do administrador antes de enviar novamente.')
         const { rows } = await client.query(
           'INSERT INTO verifications(coach_id,cref,evidence,document_id,qualification) VALUES($1,$2,$3,$4,$5) RETURNING id',
           [user.id, input.cref, input.evidence, input.documentId || null, input.qualification || ''],

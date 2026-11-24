@@ -1,4 +1,4 @@
-import type { Verification } from '../../../shared/contracts'
+import type { Profile, Verification } from '../../../shared/contracts'
 import { useAuth } from '../../context/AuthContext'
 import { useRemote } from '../../hooks/useRemote'
 import { useState } from 'react'
@@ -11,16 +11,16 @@ import { Badge } from '../../components/ui/Badge'
 
 export function VerificationForm({
   onChange,
-  currentStatus,
+  profile,
 }: {
   onChange: () => unknown
-  currentStatus: string
+  profile: Profile
 }) {
   const { user } = useAuth()
   const remote = useRemote<{ verifications: Verification[] }>(
     '/verifications',
   )
-  const [cref, setCref] = useState('')
+  const [cref, setCref] = useState(profile.cref)
   const [evidence, setEvidence] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -56,7 +56,7 @@ export function VerificationForm({
     }
   }
   const pending = remote.data?.verifications.some((v) => v.status === 'pending')
-  const approved = currentStatus === 'approved'
+  const approved = profile.verificationStatus === 'approved'
   return (
     <section className="live-panel">
       <div className="live-panel-heading">

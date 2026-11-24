@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-for (const status of ['unsubmitted', 'pending'] as const) {
+for (const status of ['unsubmitted', 'pending', 'approved'] as const) {
   test(`verificação profissional exibe dados salvos: ${status}`, async ({ page }) => {
     const user = { id: 'coach-1', name: 'João da Silva', email: 'coach@example.com', role: 'coach' }
     await page.route('**/api/**', route => {

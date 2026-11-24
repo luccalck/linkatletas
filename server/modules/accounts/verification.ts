@@ -7,12 +7,15 @@ import { fail } from '../../shared/errors.js'
 import { requireUser } from '../../shared/security.js'
 import { bodySchema, idSchema } from '../../shared/validation.js'
 import { notifyUsers } from '../interactions/notifications.js'
+import { parseCref } from '../../../shared/cref.js'
 
 const select = `SELECT v.id,v.coach_id AS "coachId",u.name AS "coachName",v.cref,v.qualification,v.evidence,v.status,v.reason,
  v.submitted_at AS "submittedAt",v.reviewed_at AS "reviewedAt",v.reviewer_id AS "reviewerId",v.document_id AS "documentId",v.expires_at AS "expiresAt",v.source,p.verification_status AS "currentStatus",p.verification_reason AS "currentReason" FROM verifications v JOIN users u ON u.id=v.coach_id JOIN profiles p ON p.user_id=v.coach_id`
 const submission = z
   .object({
-    cref: z.string().trim().min(4).max(50),
+    cref: z.string().trim().min(4).max(50).refine(value => {
+      try { parseCref(value); return true } catch { return false }
+    }, 'Informe o CREF com número, categoria e UF, por exemplo 123456-G/SP.'),
     qualification: z.enum(['Bacharelado', 'Licenciatura', 'Bacharelado e Licenciatura', 'Provisionado']).optional(),
     evidence: z.string().trim().max(2000).default(''),
     documentId: idSchema.optional(),
@@ -67,6 +70,7 @@ export async function verificationRoutes(app: FastifyInstance, pool: Pool) {
     async (req, reply) => {
       const user = requireUser(req, 'coach')
       const input = submission.parse(req.body)
+      input.cref = parseCref(input.cref)
       const id = await transaction(pool, async (client) => {
         if (input.documentId) {
           const document = await client.query(

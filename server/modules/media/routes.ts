@@ -9,7 +9,6 @@ import {
   CreateBucketCommand,
   HeadBucketCommand,
   PutObjectCommand,
-  GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3'
 import { z } from 'zod'
@@ -21,6 +20,7 @@ import { transaction } from '../../db/pool.js'
 import { assertContractAccess } from '../billing/access.js'
 import { notifyUsers } from '../interactions/notifications.js'
 import { installMediaLimits } from './limits.js'
+import { encryptMedia, mediaObjectKey, parseMediaRange, readMedia } from './object-format.js'
 
 type MediaRow = {
   id: string
@@ -231,7 +231,7 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
     if (purpose === 'verification' && type.mime.startsWith('video/'))
       fail(400, 'INVALID_FILE', 'Comprovação aceita imagem ou PDF.')
     const id = randomUUID(),
-      objectKey = `private/${id}`
+      objectKey = mediaObjectKey(id)
     const name = basename(file.filename.replaceAll('\\', '/'))
       .replace(/[\x00-\x1f\x7f"<>]/g, '_')
       .slice(0, 150)
@@ -242,7 +242,7 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
         new PutObjectCommand({
           Bucket: mediaBucket(),
           Key: objectKey,
-          Body: encryptPrivate(bytes.toString('base64')),
+          Body: encryptMedia(bytes, objectKey),
           ContentType: 'application/octet-stream',
         }),
       )
@@ -387,46 +387,15 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
     '/media/:id/content',
     { schema: { tags: ['Arquivos privados'], response: {} } },
     async (req, reply) => {
-      const row = await get(req.params.id, requireUser(req)),
-        client = mediaStorage()
+      const row = await get(req.params.id, requireUser(req))
+      const range = req.headers.range
+      const selected = range ? parseMediaRange(range, row.size) : { start: 0, end: row.size - 1 }
+      if (!selected)
+        return reply.code(416).header('Content-Range', `bytes */${row.size}`).send()
+      const client = mediaStorage()
       try {
-        const result = await client.send(
-          new GetObjectCommand({ Bucket: mediaBucket(), Key: row.object_key }),
-        )
-        if (!result.Body) fail(404, 'NOT_FOUND', 'Arquivo não encontrado.')
-        const bytes = Buffer.from(
-          decryptPrivate(await result.Body.transformToString()),
-          'base64',
-        )
-        const range = req.headers.range
-        let content = bytes
-        if (range) {
-          const match = /^bytes=(\d*)-(\d*)$/.exec(range)
-          let start = match?.[1] ? Number(match[1]) : 0
-          let end = match?.[2] ? Number(match[2]) : bytes.length - 1
-          if (match && !match[1] && match[2]) {
-            start = Math.max(0, bytes.length - Number(match[2]))
-            end = bytes.length - 1
-          }
-          if (
-            !match ||
-            (!match[1] && !match[2]) ||
-            !Number.isSafeInteger(start) ||
-            !Number.isSafeInteger(end) ||
-            start >= bytes.length ||
-            start > end
-          ) {
-            return reply
-              .code(416)
-              .header('Content-Range', `bytes */${bytes.length}`)
-              .send()
-          }
-          end = Math.min(end, bytes.length - 1)
-          content = bytes.subarray(start, end + 1)
-          reply
-            .code(206)
-            .header('Content-Range', `bytes ${start}-${end}/${bytes.length}`)
-        }
+        const content = await readMedia(client, mediaBucket(), row.object_key, row.size, selected.start, selected.end)
+        if (range) reply.code(206).header('Content-Range', `bytes ${selected.start}-${selected.end}/${row.size}`)
         return reply
           .type(row.mime_type)
           .header(
@@ -435,6 +404,7 @@ export async function mediaRoutes(app: FastifyInstance, pool: Pool) {
           )
           .header('Content-Security-Policy', "sandbox; default-src 'none'")
           .header('Accept-Ranges', 'bytes')
+          .header('Content-Length', content.length)
           .send(Readable.from([content]))
       } finally {
         client.destroy()

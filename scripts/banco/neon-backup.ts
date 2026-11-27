@@ -44,8 +44,17 @@ export async function createNeonBackup() {
     if (extensions.some(extension => !/^[a-z_][a-z0-9_]*$/.test(extension.name))) throw new Error('Extensao exige revisao antes do backup.')
     const role = (await database.query('SELECT rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=$1', [runtimeRole])).rows[0]
     if (!role || Object.values(role).some(Boolean)) throw new Error('Runtime de origem ausente ou elevado.')
-    const rowSecurity = await database.query("SELECT count(*)::int AS total FROM pg_tables WHERE schemaname='public' AND rowsecurity")
-    if (rowSecurity.rows[0].total) throw new Error('Politicas RLS exigem plano explicito de restauracao das roles.')
+    const rowSecurity = await database.query("SELECT tablename, current_user AS reader FROM pg_tables WHERE schemaname='public' AND rowsecurity")
+    if (rowSecurity.rows.some(row => row.tablename !== 'private_health' || row.reader !== 'linkatletas_backup_reader'))
+      throw new Error('Politicas RLS exigem plano explicito de backup e restauracao.')
+    if (rowSecurity.rowCount) {
+      const verified = await database.query(`SELECT 1 FROM pg_policies
+        WHERE schemaname='public' AND tablename='private_health' AND policyname='private_health_backup_read'
+          AND cmd='SELECT' AND permissive='PERMISSIVE' AND roles=ARRAY['public']::name[] AND qual=$1
+          AND NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='private_health' AND permissive='RESTRICTIVE')`,
+      ["(CURRENT_USER = 'linkatletas_backup_reader'::name)"])
+      if (!verified.rowCount) throw new Error('Politica de leitura integral do backup nao confirmada.')
+    }
     const runtimePrivileges: FullNeonArchive['runtimePrivileges'] = {}
     for (const table of tables) runtimePrivileges[table.tablename] = []
     const privileges = await database.query("SELECT c.relname AS name,p.privilege,has_table_privilege($1,c.oid,p.privilege) AS allowed FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) AS p(privilege) WHERE n.nspname='public' AND c.relkind='r'", [runtimeRole])
@@ -54,7 +63,7 @@ export async function createNeonBackup() {
     const liveObjects = (await database.query('SELECT object_key FROM media WHERE deleted_at IS NULL ORDER BY object_key')).rows
     const snapshot = (await database.query('SELECT pg_export_snapshot() AS snapshot')).rows[0].snapshot as string
     if (!/^[0-9A-Fa-f-]+$/.test(snapshot)) throw new Error('Snapshot invalido.')
-    const dump = await postgresCommand('pg_dump', url, ['--format=custom', '--schema=public', ...extensions.map(extension => '--extension=' + extension.name), '--no-owner', '--no-privileges', '--no-comments', '--lock-wait-timeout=5s', '--snapshot=' + snapshot])
+    const dump = await postgresCommand('pg_dump', url, ['--format=custom', '--schema=public', ...extensions.map(extension => '--extension=' + extension.name), '--no-owner', '--no-privileges', '--no-comments', '--enable-row-security', '--lock-wait-timeout=5s', '--snapshot=' + snapshot])
     await database.query('ROLLBACK')
     await database.end()
     connected = false

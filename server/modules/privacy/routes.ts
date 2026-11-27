@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 import { z } from 'zod'
-import { transaction } from '../../db/pool.js'
+import { transaction, userTransaction } from '../../db/pool.js'
 import { fail } from '../../shared/errors.js'
 import {
   requireUser,
@@ -159,7 +159,7 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
     async (req) => {
       const user = requireUser(req),
         input = consent.parse(req.body)
-      await transaction(pool, async (client) => {
+      await userTransaction(pool, user.id, async (client) => {
         await accountLock(client, user.id)
         await client.query(
           'INSERT INTO consents(user_id,purpose,granted,version) VALUES($1,$2,$3,$4) ON CONFLICT(user_id,purpose) DO UPDATE SET granted=EXCLUDED.granted,version=EXCLUDED.version,updated_at=now()',
@@ -195,10 +195,10 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
     .strict()
   app.get('/privacy/health', { schema }, async (req) => {
     const user = requireUser(req),
-      { rows } = await pool.query(
+      { rows } = await userTransaction(pool, user.id, (client) => client.query(
         'SELECT encrypted_data FROM private_health WHERE user_id=$1',
         [user.id],
-      )
+      ))
     return {
       health: rows[0]
         ? JSON.parse(decryptPrivate(rows[0].encrypted_data))
@@ -211,7 +211,7 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
     async (req) => {
       const user = requireUser(req),
         input = health.parse(req.body)
-      await transaction(pool, async (client) => {
+      await userTransaction(pool, user.id, async (client) => {
         await accountLock(client, user.id)
         const { rows } = await client.query(
           "SELECT 1 FROM consents WHERE user_id=$1 AND purpose='health' AND granted=true FOR SHARE",
@@ -261,10 +261,10 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
       private_payload: undefined,
     }))
     const health = (
-      await pool.query(
+      await userTransaction(pool, user.id, (client) => client.query(
         'SELECT encrypted_data FROM private_health WHERE user_id=$1',
         [user.id],
-      )
+      ))
     ).rows[0]
     const consents = (
       await pool.query(
@@ -371,7 +371,7 @@ export async function platformRoutes(app: FastifyInstance, pool: Pool) {
     async (req) => {
       const user = requireUser(req),
         input = z.object({ password }).strict().parse(req.body)
-      await transaction(pool, async (client) => {
+      await userTransaction(pool, user.id, async (client) => {
         // Lock the account before the final financial check. Checkout/media/session creation share this lock.
         const account = (
           await client.query(

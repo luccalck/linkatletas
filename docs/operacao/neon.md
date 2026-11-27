@@ -129,3 +129,11 @@ No plano Free auditado, o histórico nativo do Neon alcança seis horas; não su
 O backup não recria contas do provedor, configurações de Vercel/Neon, segredos ou integrações externas. A recuperação validada cobre banco, arquivos ativos, cifra e ensaio sintético da API; não homologa SMTP, pagamentos, Google ou produção inteira.
 
 Referências: [pooling no Neon](https://neon.com/docs/connect/connection-pooling), [roles e privilégios](https://neon.com/docs/manage/roles), [eventos do pool node-postgres](https://node-postgres.com/apis/pool).
+
+## Políticas por linha e implantação
+
+A migration 011 limita a tabela de saúde privada ao titular para as conexões da aplicação. A API define o identificador autenticado apenas dentro da transação que usa a tabela, incluindo exportação, revogação de consentimento e exclusão. A conta dedicada de backup mantém leitura integral, sem permissão de escrita. As demais tabelas continuam usando as permissões e regras da API.
+
+Publique a versão da API que define o contexto da transação antes de aplicar a migration 011 em um banco que já atende a aplicação. Em Preview, confira leitura e gravação de saúde, exportação e revogação com contas fictícias. Depois da migração de produção, confira o backup cifrado com restauração, além do monitor de atualidade. Se uma versão antiga da API precisar voltar, desative o RLS nessa tabela antes de direcionar tráfego à versão antiga. Registre a exceção e reative após corrigir a implantação.
+
+O backup copia objetos privados nos formatos original e por blocos. Preserve a chave de cifra e use uma versão da API que entenda ambos os formatos ao restaurar ou reverter código depois que arquivos novos tiverem sido gravados.

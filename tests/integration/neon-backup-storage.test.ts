@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { CreateBucketCommand, DeleteBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { decryptPrivate, encryptPrivate } from '../../server/shared/crypto.js'
 import { copyEncryptedObject, readObject } from '../../scripts/banco/neon-backup-objects.js'
+import { encryptMedia, mediaBlockSize, mediaObjectKey, readMedia } from '../../server/modules/media/object-format.js'
 
 const endpoint = new URL(process.env.S3_ENDPOINT || 'http://127.0.0.1:8333')
 if (endpoint.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
@@ -85,6 +86,16 @@ describe('recuperacao independente de objetos em S3 real isolado', () => {
     expect(await copyEncryptedObject(storage, backupBucket, backupKey, storage, restoreBucket, fixture.key)).toEqual(expected)
     const restored = await readObject(storage, restoreBucket, fixture.key)
     expect(Buffer.from(decryptPrivate(restored.toString('utf8')), 'base64')).toEqual(fixture.bytes)
+  })
+
+  it('restores authenticated blocks and serves partial content after backup', async () => {
+    const bytes = randomBytes(mediaBlockSize * 2 + 7)
+    const key = mediaObjectKey(randomUUID())
+    const backupKey = 'snapshot/' + randomUUID()
+    await storage.send(new PutObjectCommand({ Bucket: sourceBucket, Key: key, Body: encryptMedia(bytes, key) }))
+    await copyEncryptedObject(storage, sourceBucket, key, storage, backupBucket, backupKey)
+    await copyEncryptedObject(storage, backupBucket, backupKey, storage, restoreBucket, key)
+    expect(await readMedia(storage, restoreBucket, key, bytes.length, mediaBlockSize - 4, mediaBlockSize + 3)).toEqual(bytes.subarray(mediaBlockSize - 4, mediaBlockSize + 4))
   })
 
   it('recusa arquivo referenciado ausente sem criar uma copia valida', async () => {

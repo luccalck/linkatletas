@@ -42,3 +42,10 @@ export async function transaction<T>(
     client.release(discard)
   }
 }
+
+export async function userTransaction<T>(pool: pg.Pool, userId: string, work: (client: pg.PoolClient) => Promise<T>) {
+  return transaction(pool, async (client) => {
+    await client.query("SELECT set_config('linkatletas.user_id',$1,true)", [userId])
+    return work(client)
+  })
+}

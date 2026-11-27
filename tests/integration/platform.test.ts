@@ -209,7 +209,7 @@ describe.sequential('Plataforma, SMTP e S3 reais locais', () => {
       )
       const bytes = await object.Body!.transformToByteArray()
       expect(Buffer.from(bytes).equals(png)).toBe(false)
-      expect(Buffer.from(bytes).toString().startsWith('la1:')).toBe(true)
+      expect(Buffer.from(bytes).toString().startsWith('la2:')).toBe(true)
     } finally {
       s3.destroy()
     }
@@ -223,6 +223,38 @@ describe.sequential('Plataforma, SMTP e S3 reais locais', () => {
     expect(
       (await call(stranger, 'GET', `/media/${mediaId}/content`)).statusCode,
     ).toBe(404)
+  })
+
+  it('limits health rows per transaction and preserves the backup reader', async () => {
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(`CREATE ROLE linkatletas_health_policy_test NOLOGIN;
+        GRANT USAGE ON SCHEMA public TO linkatletas_health_policy_test;
+        GRANT SELECT, INSERT, UPDATE, DELETE ON private_health TO linkatletas_health_policy_test`)
+      await client.query(`DO $$ BEGIN
+        IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='linkatletas_backup_reader') THEN
+          CREATE ROLE linkatletas_backup_reader NOLOGIN;
+        END IF;
+        END $$;
+        GRANT USAGE ON SCHEMA public TO linkatletas_backup_reader;
+        GRANT SELECT ON private_health TO linkatletas_backup_reader`)
+      await client.query("INSERT INTO private_health(user_id,encrypted_data) VALUES($1,'first'),($2,'second') ON CONFLICT(user_id) DO NOTHING", [athlete.user.id, coach.user.id])
+      await client.query('SET LOCAL ROLE linkatletas_health_policy_test')
+      expect((await client.query('SELECT user_id FROM private_health')).rowCount).toBe(0)
+      await client.query('SAVEPOINT health_context')
+      await client.query("SELECT set_config('linkatletas.user_id',$1,true)", [athlete.user.id])
+      expect((await client.query('SELECT user_id FROM private_health')).rows).toEqual([{ user_id: athlete.user.id }])
+      expect((await client.query('DELETE FROM private_health WHERE user_id=$1', [coach.user.id])).rowCount).toBe(0)
+      await expect(client.query("INSERT INTO private_health(user_id,encrypted_data) VALUES($1,'third')", [stranger.user.id])).rejects.toMatchObject({ code: '42501' })
+      await client.query('ROLLBACK TO SAVEPOINT health_context')
+      expect((await client.query('SELECT user_id FROM private_health')).rowCount).toBe(0)
+      await client.query('SET LOCAL ROLE linkatletas_backup_reader')
+      expect((await client.query('SELECT user_id FROM private_health WHERE user_id IN ($1,$2)', [athlete.user.id, coach.user.id])).rowCount).toBe(2)
+    } finally {
+      await client.query('ROLLBACK')
+      client.release()
+    }
   })
   it('envio em partes preserva arquivo grande, impede terceiro e finaliza sem duplicar', async () => {
     const bytes = Buffer.concat([png, Buffer.alloc(5 * 1024 * 1024)])

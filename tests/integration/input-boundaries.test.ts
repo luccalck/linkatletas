@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 import pg from 'pg'
 
-const objects = vi.hoisted(() => new Map<string, string>())
+const objects = vi.hoisted(() => new Map<string, Buffer>())
 vi.mock('@aws-sdk/client-s3', async (original) => {
   const sdk = await original<typeof import('@aws-sdk/client-s3')>()
   return {
@@ -12,8 +12,21 @@ vi.mock('@aws-sdk/client-s3', async (original) => {
     S3Client: class {
       async send(command: any) {
         const key = command.input.Key
-        if (command instanceof sdk.PutObjectCommand) { objects.set(key, String(command.input.Body)); return {} }
-        if (command instanceof sdk.GetObjectCommand) return { Body: { transformToString: async () => objects.get(key) } }
+        if (command instanceof sdk.PutObjectCommand) {
+          const body = command.input.Body
+          objects.set(key, Buffer.isBuffer(body) ? body : Buffer.from(String(body)))
+          return {}
+        }
+        if (command instanceof sdk.GetObjectCommand) {
+          const data = objects.get(key)!
+          const [, start, end] = /^bytes=(\d+)-(\d+)$/.exec(command.input.Range ?? '') ?? []
+          const selected = start === undefined ? data : data.subarray(Number(start), Number(end) + 1)
+          return {
+            ContentRange: start === undefined ? undefined : `bytes ${start}-${end}/${data.length}`,
+            ContentLength: selected.length,
+            Body: { transformToString: async () => selected.toString(), transformToByteArray: async () => selected },
+          }
+        }
         if (command instanceof sdk.DeleteObjectCommand) { objects.delete(key); return {} }
         return {}
       }
@@ -157,7 +170,7 @@ describe('fronteiras de entrada e autorizacao com PostgreSQL', () => {
     const uploaded = await upload(1, png, 'fixture.png', 'image/png')
     expect(uploaded.statusCode, uploaded.body).toBe(201)
     const id = uploaded.json().media.id
-    expect([...objects.values()].some((x) => x.includes(png.toString('base64')))).toBe(false)
+    expect([...objects.values()].some((x) => x.includes(png) || x.includes(png.toString('base64')))).toBe(false)
     expect((await call(2, 'GET', '/media/' + id + '/content')).statusCode).toBe(404)
     expect((await app.inject('/api/media/' + id + '/content')).statusCode).toBe(401)
     const content = await call(1, 'GET', '/media/' + id + '/content')

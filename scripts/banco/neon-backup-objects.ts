@@ -94,7 +94,7 @@ export async function copyEncryptedObject(source: S3Client, sourceBucket: string
         const initial = Buffer.concat([prefix, chunk])
         if (initial.length < 4) { prefix = initial; done(); return }
         prefix = initial.subarray(0, 4)
-        if (prefix.toString() !== 'la1:') { done(new Error('Objeto de origem nao esta cifrado.')); return }
+        if (!['la1:', 'la2:'].includes(prefix.toString())) { done(new Error('Objeto de origem nao esta cifrado.')); return }
         done(null, initial)
         return
       }
@@ -109,7 +109,7 @@ export async function copyEncryptedObject(source: S3Client, sourceBucket: string
   }), { abortSignal: controller.signal })
   try {
     await Promise.all([transfer, upload])
-    if (size !== response.ContentLength || prefix.toString() !== 'la1:') throw new Error('Objeto de origem nao e um envelope privado completo.')
+    if (size !== response.ContentLength || !['la1:', 'la2:'].includes(prefix.toString())) throw new Error('Objeto de origem nao e um envelope privado completo.')
     const expected = { bytes: size, sha256: digest.digest('hex') }
     const saved = await objectHash(target, targetBucket, targetKey)
     if (saved.sha256 !== expected.sha256 || saved.bytes !== expected.bytes) throw new Error('Copia de objeto diverge da origem.')

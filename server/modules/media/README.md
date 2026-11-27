@@ -3,6 +3,7 @@
 | Arquivo | Função |
 |---|---|
 | [routes.ts](routes.ts) | Cliente S3, autorização, validação de arquivo, cifra, leitura/Range, exclusão e feedback. |
+| [object-format.ts](object-format.ts) | Cifra autenticada em blocos de 256 KiB, leitura parcial do S3 e compatibilidade com objetos anteriores. |
 | [uploads.ts](uploads.ts) | Sessões de upload em partes, validação de tamanho/índice, conclusão e limpeza de partes expiradas. |
 | [limits.ts](limits.ts) | Limita a duas operações intensivas simultâneas por instância da API, devolvendo 429 e Retry-After em vez de acumular processamento. |
 

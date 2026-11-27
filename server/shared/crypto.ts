@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-function dataKey(): Buffer {
+export function dataKey(): Buffer {
   const configured = process.env.DATA_ENCRYPTION_KEY
   if (configured) {
     const key = Buffer.from(configured, 'base64')

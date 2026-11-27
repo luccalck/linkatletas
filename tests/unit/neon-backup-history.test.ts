@@ -44,6 +44,23 @@ describe('recuperacao historica sem mascarar a atualidade', () => {
     expect(target.markers.size).toBe(2)
   })
 
+  it('distingue falta de marcador de falha ao consultar o arquivo', async () => {
+    const missing = storage()
+    const stage = vi.fn()
+    await expect(checkValidatedBackup(missing.client, 'backup', key, now, stage)).rejects.toThrow('Nenhum backup')
+    expect(stage).toHaveBeenLastCalledWith('find_marker')
+
+    const fresh = { ...old, backupKey: 'neon/2026-10-30/' + 'c'.repeat(32) + '.lan', createdAt: '2026-10-30T09:00:00.000Z' }
+    const target = storage([fresh])
+    const original = target.send.getMockImplementation()!
+    target.send.mockImplementation(async (command) => {
+      if (command instanceof HeadObjectCommand) throw new Error('Falha de armazenamento')
+      return original(command)
+    })
+    await expect(checkValidatedBackup(target.client, 'backup', key, now, stage)).rejects.toThrow('Falha de armazenamento')
+    expect(stage).toHaveBeenLastCalledWith('head_archive')
+  })
+
   it.each([
     { ...old, createdAt: '2026-10-31T10:00:00.000Z' },
     { ...old, validatedAt: '2026-10-31T10:00:00.000Z' },
